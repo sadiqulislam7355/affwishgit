@@ -1,4 +1,4 @@
-export type UserRole = 'admin' | 'affiliate' | 'advertiser';
+export type UserRole = 'admin' | 'affiliate';
 
 export interface User {
   id: string;
@@ -16,8 +16,6 @@ export interface Offer {
   id: string;
   name: string;
   description: string;
-  advertiser: string;
-  advertiserId: string;
   payout: number;
   payoutType: 'CPA' | 'CPI' | 'CPL' | 'RevShare';
   revSharePercentage?: number;
@@ -47,6 +45,13 @@ export interface Offer {
   };
   postbackUrl?: string;
   globalPostbackEnabled: boolean;
+  // Conversion tracking
+  pixelSettings?: {
+    enabled: boolean;
+    pixelCode?: string;
+    iframeUrl?: string;
+    postbackMacros?: string[];
+  };
 }
 
 export interface Affiliate {

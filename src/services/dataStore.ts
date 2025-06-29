@@ -7,8 +7,6 @@ class DataStore {
       id: '1',
       name: 'Premium Dating App',
       description: 'High-converting dating app with premium features',
-      advertiser: 'Dating Corp',
-      advertiserId: 'adv_1',
       payout: 25.00,
       payoutType: 'CPA',
       category: 'Dating',
@@ -22,14 +20,18 @@ class DataStore {
       createdAt: new Date().toISOString(),
       conversionFlow: 'Registration + Email Verification',
       restrictions: 'No adult traffic, no incentivized traffic',
-      globalPostbackEnabled: true
+      globalPostbackEnabled: true,
+      pixelSettings: {
+        enabled: true,
+        pixelCode: '<img src="https://track.affwish.com/pixel?offer_id={offer_id}&click_id={click_id}" width="1" height="1" />',
+        iframeUrl: 'https://track.affwish.com/iframe?offer_id={offer_id}&click_id={click_id}',
+        postbackMacros: ['{click_id}', '{affiliate_id}', '{offer_id}', '{conversion_value}', '{timestamp}']
+      }
     },
     {
       id: '2',
       name: 'Crypto Trading Platform',
       description: 'Advanced cryptocurrency trading platform',
-      advertiser: 'Crypto Exchange',
-      advertiserId: 'adv_2',
       payout: 40.00,
       payoutType: 'CPA',
       category: 'Finance',
@@ -42,7 +44,12 @@ class DataStore {
       createdAt: new Date().toISOString(),
       conversionFlow: 'Registration + KYC Verification + First Deposit',
       restrictions: 'Must be 18+, restricted countries apply',
-      globalPostbackEnabled: true
+      globalPostbackEnabled: true,
+      pixelSettings: {
+        enabled: true,
+        pixelCode: '<script>window.trackConversion({offer_id: "{offer_id}", click_id: "{click_id}"});</script>',
+        postbackMacros: ['{click_id}', '{affiliate_id}', '{offer_id}', '{conversion_value}', '{timestamp}', '{country}']
+      }
     }
   ];
 

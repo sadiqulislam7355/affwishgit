@@ -1,15 +1,14 @@
 import React from 'react';
 import { UserRole } from '../types';
 import { useAuth } from '../contexts/AuthContext';
-import { Shield, Target, Users } from 'lucide-react';
+import { Shield, Target } from 'lucide-react';
 
 const RoleSwitcher: React.FC = () => {
   const { user, switchRole } = useAuth();
 
   const roles = [
     { value: 'admin' as UserRole, label: 'Network Admin', icon: Shield, color: 'blue' },
-    { value: 'affiliate' as UserRole, label: 'Affiliate', icon: Target, color: 'emerald' },
-    { value: 'advertiser' as UserRole, label: 'Advertiser', icon: Users, color: 'orange' }
+    { value: 'affiliate' as UserRole, label: 'Affiliate', icon: Target, color: 'emerald' }
   ];
 
   if (!user) return null;

@@ -7,7 +7,6 @@ import Layout from './components/Layout/Layout';
 import Dashboard from './components/Pages/Dashboard';
 import OffersPage from './components/Pages/OffersPage';
 import AffiliatesPage from './components/Pages/AffiliatesPage';
-import AdvertisersPage from './components/Pages/AdvertisersPage';
 import AnalyticsPage from './components/Pages/AnalyticsPage';
 import PayoutsPage from './components/Pages/PayoutsPage';
 import SettingsPage from './components/Pages/SettingsPage';
@@ -16,13 +15,8 @@ import FraudDetectionPage from './components/Pages/FraudDetectionPage';
 import CreativesPage from './components/Pages/CreativesPage';
 import StatisticsPage from './components/Pages/StatisticsPage';
 import ProfilePage from './components/Pages/ProfilePage';
-import BillingPage from './components/Pages/BillingPage';
-import TrafficSourcesPage from './components/Pages/TrafficSourcesPage';
 import MyLinksPage from './components/Pages/MyLinksPage';
 import PaymentsPage from './components/Pages/PaymentsPage';
-import MyOffersPage from './components/Pages/MyOffersPage';
-import CampaignStatsPage from './components/Pages/CampaignStatsPage';
-import AccountPage from './components/Pages/AccountPage';
 import RoleSwitcher from './components/RoleSwitcher';
 
 const AppRoutes: React.FC = () => {
@@ -45,7 +39,6 @@ const AppRoutes: React.FC = () => {
             <>
               <Route path="/offers" element={<OffersPage />} />
               <Route path="/affiliates" element={<AffiliatesPage />} />
-              <Route path="/advertisers" element={<AdvertisersPage />} />
               <Route path="/smartlinks" element={<SmartLinksPage />} />
               <Route path="/fraud" element={<FraudDetectionPage />} />
               <Route path="/analytics" element={<AnalyticsPage />} />
@@ -63,18 +56,6 @@ const AppRoutes: React.FC = () => {
               <Route path="/creatives" element={<CreativesPage />} />
               <Route path="/payments" element={<PaymentsPage />} />
               <Route path="/profile" element={<ProfilePage />} />
-            </>
-          )}
-          
-          {/* Advertiser Routes */}
-          {user.role === 'advertiser' && (
-            <>
-              <Route path="/offers" element={<MyOffersPage />} />
-              <Route path="/stats" element={<CampaignStatsPage />} />
-              <Route path="/creatives" element={<CreativesPage />} />
-              <Route path="/traffic" element={<TrafficSourcesPage />} />
-              <Route path="/billing" element={<BillingPage />} />
-              <Route path="/account" element={<AccountPage />} />
             </>
           )}
           

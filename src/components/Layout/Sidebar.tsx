@@ -31,7 +31,6 @@ const Sidebar: React.FC = () => {
           ...baseItems,
           { icon: Target, label: 'Offers', path: '/offers' },
           { icon: Users, label: 'Affiliates', path: '/affiliates' },
-          { icon: Users, label: 'Advertisers', path: '/advertisers' },
           { icon: Link, label: 'SmartLinks', path: '/smartlinks' },
           { icon: Shield, label: 'Fraud Detection', path: '/fraud' },
           { icon: PieChart, label: 'Analytics', path: '/analytics' },
@@ -48,17 +47,6 @@ const Sidebar: React.FC = () => {
           { icon: FileText, label: 'Creatives', path: '/creatives' },
           { icon: CreditCard, label: 'Payments', path: '/payments' },
           { icon: Settings, label: 'Profile', path: '/profile' }
-        ];
-      
-      case 'advertiser':
-        return [
-          ...baseItems,
-          { icon: Target, label: 'My Offers', path: '/offers' },
-          { icon: BarChart3, label: 'Campaign Stats', path: '/stats' },
-          { icon: FileText, label: 'Creatives', path: '/creatives' },
-          { icon: Users, label: 'Traffic Sources', path: '/traffic' },
-          { icon: CreditCard, label: 'Billing', path: '/billing' },
-          { icon: Settings, label: 'Account', path: '/account' }
         ];
       
       default:

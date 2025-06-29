@@ -32,15 +32,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         
         if (email.includes('admin')) {
           role = 'admin';
-        } else if (email.includes('advertiser')) {
-          role = 'advertiser';
         }
 
         const mockUser: User = {
           id: Math.random().toString(36).substr(2, 9),
-          name: role === 'admin' ? 'Network Admin' :
-               role === 'affiliate' ? 'Top Affiliate' :
-               role === 'advertiser' ? 'Premium Advertiser' : 'User',
+          name: role === 'admin' ? 'Network Admin' : 'Top Affiliate',
           email,
           role,
           status: 'active',

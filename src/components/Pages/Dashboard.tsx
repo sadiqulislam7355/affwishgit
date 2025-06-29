@@ -2,7 +2,6 @@ import React from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import AdminDashboard from '../Dashboard/AdminDashboard';
 import AffiliateDashboard from '../Dashboard/AffiliateDashboard';
-import AdvertiserDashboard from '../Dashboard/AdvertiserDashboard';
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
@@ -14,8 +13,6 @@ const Dashboard: React.FC = () => {
       return <AdminDashboard />;
     case 'affiliate':
       return <AffiliateDashboard />;
-    case 'advertiser':
-      return <AdvertiserDashboard />;
     default:
       return <AdminDashboard />;
   }
