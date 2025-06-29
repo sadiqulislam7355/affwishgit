@@ -1,13 +1,12 @@
 import React from 'react';
 import { UserRole } from '../types';
 import { useAuth } from '../contexts/AuthContext';
-import { Database, Shield, Target, Users } from 'lucide-react';
+import { Shield, Target, Users } from 'lucide-react';
 
 const RoleSwitcher: React.FC = () => {
   const { user, switchRole } = useAuth();
 
   const roles = [
-    { value: 'super_admin' as UserRole, label: 'Super Admin', icon: Database, color: 'purple' },
     { value: 'admin' as UserRole, label: 'Network Admin', icon: Shield, color: 'blue' },
     { value: 'affiliate' as UserRole, label: 'Affiliate', icon: Target, color: 'emerald' },
     { value: 'advertiser' as UserRole, label: 'Advertiser', icon: Users, color: 'orange' }
@@ -19,7 +18,7 @@ const RoleSwitcher: React.FC = () => {
     <div className="fixed top-4 right-4 z-50">
       <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-4">
         <p className="text-sm font-medium text-gray-700 mb-3">Demo Mode - Switch Role:</p>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 gap-2">
           {roles.map((role) => {
             const Icon = role.icon;
             const isActive = user.role === role.value;

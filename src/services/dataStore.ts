@@ -1,5 +1,5 @@
 // Local data store for demo functionality
-import { User, Offer, Affiliate, Postback, FraudAlert, Tenant } from '../types';
+import { User, Offer, Affiliate, Postback, FraudAlert } from '../types';
 
 class DataStore {
   private offers: Offer[] = [
@@ -21,7 +21,8 @@ class DataStore {
       caps: { daily: 100, weekly: 500, monthly: 2000 },
       createdAt: new Date().toISOString(),
       conversionFlow: 'Registration + Email Verification',
-      restrictions: 'No adult traffic, no incentivized traffic'
+      restrictions: 'No adult traffic, no incentivized traffic',
+      globalPostbackEnabled: true
     },
     {
       id: '2',
@@ -40,7 +41,8 @@ class DataStore {
       caps: { daily: 50, weekly: 300, monthly: 1200 },
       createdAt: new Date().toISOString(),
       conversionFlow: 'Registration + KYC Verification + First Deposit',
-      restrictions: 'Must be 18+, restricted countries apply'
+      restrictions: 'Must be 18+, restricted countries apply',
+      globalPostbackEnabled: true
     }
   ];
 
@@ -122,49 +124,6 @@ class DataStore {
       timestamp: new Date().toISOString(),
       status: 'investigating',
       ipAddress: '10.0.0.50'
-    }
-  ];
-
-  private tenants: Tenant[] = [
-    {
-      id: '1',
-      name: 'AdVantage Networks',
-      domain: 'advantage-networks.com',
-      logo: 'https://via.placeholder.com/150x50/3B82F6/FFFFFF?text=AdVantage',
-      theme: {
-        primaryColor: '#3B82F6',
-        secondaryColor: '#10B981'
-      },
-      settings: {
-        allowSelfRegistration: true,
-        requireApproval: true,
-        defaultPayoutTerms: 'Net-15'
-      },
-      createdAt: new Date().toISOString(),
-      status: 'active',
-      revenue: 45600,
-      affiliates: 2340,
-      admin: 'john@advantage.com'
-    },
-    {
-      id: '2',
-      name: 'Global CPA Hub',
-      domain: 'globalcpahub.com',
-      logo: 'https://via.placeholder.com/150x50/10B981/FFFFFF?text=GlobalCPA',
-      theme: {
-        primaryColor: '#10B981',
-        secondaryColor: '#F97316'
-      },
-      settings: {
-        allowSelfRegistration: false,
-        requireApproval: true,
-        defaultPayoutTerms: 'Net-30'
-      },
-      createdAt: new Date().toISOString(),
-      status: 'active',
-      revenue: 32100,
-      affiliates: 1560,
-      admin: 'sarah@globalcpa.com'
     }
   ];
 
@@ -280,29 +239,6 @@ class DataStore {
     };
     this.fraudAlerts.push(newAlert);
     return newAlert;
-  }
-
-  // Tenants
-  getTenants(): Tenant[] {
-    return [...this.tenants];
-  }
-
-  addTenant(tenant: Omit<Tenant, 'id'>): Tenant {
-    const newTenant: Tenant = {
-      ...tenant,
-      id: Date.now().toString()
-    };
-    this.tenants.push(newTenant);
-    return newTenant;
-  }
-
-  updateTenant(id: string, updates: Partial<Tenant>): Tenant | null {
-    const index = this.tenants.findIndex(t => t.id === id);
-    if (index !== -1) {
-      this.tenants[index] = { ...this.tenants[index], ...updates };
-      return this.tenants[index];
-    }
-    return null;
   }
 
   // Analytics

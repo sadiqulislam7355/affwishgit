@@ -10,9 +10,7 @@ import {
   Link,
   PieChart,
   AlertTriangle,
-  FileText,
-  Palette,
-  Database
+  FileText
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -28,16 +26,6 @@ const Sidebar: React.FC = () => {
     ];
 
     switch (user?.role) {
-      case 'super_admin':
-        return [
-          ...baseItems,
-          { icon: Database, label: 'Tenants', path: '/tenants' },
-          { icon: Users, label: 'All Users', path: '/users' },
-          { icon: Palette, label: 'White-Label', path: '/branding' },
-          { icon: Shield, label: 'Global Security', path: '/security' },
-          { icon: Settings, label: 'System Settings', path: '/settings' }
-        ];
-      
       case 'admin':
         return [
           ...baseItems,
@@ -48,7 +36,7 @@ const Sidebar: React.FC = () => {
           { icon: Shield, label: 'Fraud Detection', path: '/fraud' },
           { icon: PieChart, label: 'Analytics', path: '/analytics' },
           { icon: CreditCard, label: 'Payouts', path: '/payouts' },
-          { icon: Settings, label: 'Network Settings', path: '/settings' }
+          { icon: Settings, label: 'Settings', path: '/settings' }
         ];
       
       case 'affiliate':

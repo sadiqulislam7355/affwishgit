@@ -7,9 +7,6 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   switchRole: (role: UserRole) => void;
-  impersonate: (tenantId: string, userEmail: string) => Promise<void>;
-  isImpersonating: boolean;
-  stopImpersonation: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -24,8 +21,6 @@ export const useAuth = () => {
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [isImpersonating, setIsImpersonating] = useState(false);
-  const [originalUser, setOriginalUser] = useState<User | null>(null);
 
   const login = async (email: string, password: string) => {
     try {
@@ -35,9 +30,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         // Determine role based on email for demo
         let role: UserRole = 'affiliate';
         
-        if (email.includes('superadmin')) {
-          role = 'super_admin';
-        } else if (email.includes('admin')) {
+        if (email.includes('admin')) {
           role = 'admin';
         } else if (email.includes('advertiser')) {
           role = 'advertiser';
@@ -45,14 +38,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
         const mockUser: User = {
           id: Math.random().toString(36).substr(2, 9),
-          name: role === 'super_admin' ? 'Super Admin' : 
-               role === 'admin' ? 'Network Owner' :
+          name: role === 'admin' ? 'Network Admin' :
                role === 'affiliate' ? 'Top Affiliate' :
-               role === 'advertiser' ? 'Premium Advertiser' : 'Manager',
+               role === 'advertiser' ? 'Premium Advertiser' : 'User',
           email,
           role,
           status: 'active',
-          tenant: role !== 'super_admin' ? 'demo-network' : undefined,
           createdAt: new Date().toISOString(),
           lastLogin: new Date().toISOString()
         };
@@ -67,53 +58,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const logout = () => {
     setUser(null);
-    setIsImpersonating(false);
-    setOriginalUser(null);
   };
 
   const switchRole = (role: UserRole) => {
-    if (user && !isImpersonating) {
+    if (user) {
       setUser({ ...user, role });
-    }
-  };
-
-  const impersonate = async (tenantId: string, userEmail: string) => {
-    if (!user || user.role !== 'super_admin') {
-      throw new Error('Only super admins can impersonate users');
-    }
-
-    try {
-      const response = await apiService.impersonateUser(tenantId, userEmail);
-      
-      if (response.success) {
-        setOriginalUser(user);
-        setIsImpersonating(true);
-        
-        // Create impersonated user
-        const impersonatedUser: User = {
-          id: 'impersonated_' + Date.now(),
-          name: 'Network Admin (Impersonated)',
-          email: userEmail,
-          role: 'admin',
-          status: 'active',
-          tenant: tenantId,
-          createdAt: new Date().toISOString(),
-          lastLogin: new Date().toISOString()
-        };
-        
-        setUser(impersonatedUser);
-      }
-    } catch (error) {
-      console.error('Impersonation failed:', error);
-      throw error;
-    }
-  };
-
-  const stopImpersonation = () => {
-    if (isImpersonating && originalUser) {
-      setUser(originalUser);
-      setIsImpersonating(false);
-      setOriginalUser(null);
     }
   };
 
@@ -122,10 +71,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       user, 
       login, 
       logout, 
-      switchRole, 
-      impersonate,
-      isImpersonating,
-      stopImpersonation
+      switchRole
     }}>
       {children}
     </AuthContext.Provider>

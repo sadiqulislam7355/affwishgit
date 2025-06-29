@@ -35,8 +35,7 @@ const LoginForm: React.FC = () => {
   };
 
   const demoCredentials = [
-    { email: 'superadmin@affwish.com', role: 'Super Admin', description: 'Platform management' },
-    { email: 'admin@demo-network.com', role: 'Network Admin', description: 'Network operations' },
+    { email: 'admin@affwish.com', role: 'Network Admin', description: 'Network operations' },
     { email: 'affiliate@example.com', role: 'Affiliate', description: 'Promote offers' },
     { email: 'advertiser@example.com', role: 'Advertiser', description: 'Manage campaigns' }
   ];

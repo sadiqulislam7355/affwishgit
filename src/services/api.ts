@@ -1,5 +1,5 @@
 import { dataStore } from './dataStore';
-import { Offer, Affiliate, Postback, FraudAlert, Tenant } from '../types';
+import { Offer, Affiliate, Postback, FraudAlert } from '../types';
 
 export interface ApiResponse<T> {
   success: boolean;
@@ -179,40 +179,6 @@ class ApiService {
       success: true,
       data: dataStore.getAnalytics(),
       message: 'Analytics retrieved successfully'
-    };
-  }
-
-  // Tenants
-  async getTenants(): Promise<ApiResponse<Tenant[]>> {
-    await this.delay();
-    return {
-      success: true,
-      data: dataStore.getTenants(),
-      message: 'Tenants retrieved successfully'
-    };
-  }
-
-  async createTenant(tenantData: Omit<Tenant, 'id'>): Promise<ApiResponse<Tenant>> {
-    await this.delay();
-    const tenant = dataStore.addTenant(tenantData);
-    return {
-      success: true,
-      data: tenant,
-      message: 'Tenant created successfully'
-    };
-  }
-
-  async impersonateUser(tenantId: string, userEmail: string): Promise<ApiResponse<any>> {
-    await this.delay();
-    return {
-      success: true,
-      data: { 
-        impersonated: true, 
-        tenant: tenantId, 
-        user: userEmail,
-        token: 'impersonation-token'
-      },
-      message: 'Impersonation successful'
     };
   }
 }

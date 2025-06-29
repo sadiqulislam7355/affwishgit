@@ -8,7 +8,6 @@ import Dashboard from './components/Pages/Dashboard';
 import OffersPage from './components/Pages/OffersPage';
 import AffiliatesPage from './components/Pages/AffiliatesPage';
 import AdvertisersPage from './components/Pages/AdvertisersPage';
-import TenantsPage from './components/Pages/TenantsPage';
 import AnalyticsPage from './components/Pages/AnalyticsPage';
 import PayoutsPage from './components/Pages/PayoutsPage';
 import SettingsPage from './components/Pages/SettingsPage';
@@ -41,19 +40,8 @@ const AppRoutes: React.FC = () => {
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<Dashboard />} />
           
-          {/* Super Admin Routes */}
-          {user.role === 'super_admin' && (
-            <>
-              <Route path="/tenants" element={<TenantsPage />} />
-              <Route path="/users" element={<AffiliatesPage />} />
-              <Route path="/branding" element={<SettingsPage />} />
-              <Route path="/security" element={<FraudDetectionPage />} />
-              <Route path="/settings" element={<SettingsPage />} />
-            </>
-          )}
-          
           {/* Admin Routes */}
-          {(user.role === 'admin' || user.role === 'super_admin') && (
+          {user.role === 'admin' && (
             <>
               <Route path="/offers" element={<OffersPage />} />
               <Route path="/affiliates" element={<AffiliatesPage />} />
@@ -62,6 +50,7 @@ const AppRoutes: React.FC = () => {
               <Route path="/fraud" element={<FraudDetectionPage />} />
               <Route path="/analytics" element={<AnalyticsPage />} />
               <Route path="/payouts" element={<PayoutsPage />} />
+              <Route path="/settings" element={<SettingsPage />} />
             </>
           )}
           

@@ -1,4 +1,4 @@
-export type UserRole = 'super_admin' | 'admin' | 'affiliate' | 'advertiser' | 'manager';
+export type UserRole = 'admin' | 'affiliate' | 'advertiser';
 
 export interface User {
   id: string;
@@ -7,38 +7,9 @@ export interface User {
   role: UserRole;
   avatar?: string;
   status: 'active' | 'pending' | 'suspended';
-  tenant?: string;
   createdAt: string;
   lastLogin?: string;
   permissions?: string[];
-}
-
-export interface Tenant {
-  id: string;
-  name: string;
-  domain: string;
-  logo?: string;
-  theme: {
-    primaryColor: string;
-    secondaryColor: string;
-  };
-  settings: {
-    allowSelfRegistration: boolean;
-    requireApproval: boolean;
-    defaultPayoutTerms: string;
-    globalPostbackUrl?: string;
-    fraudDetection: {
-      enabled: boolean;
-      provider?: string;
-      apiKey?: string;
-      threshold: number;
-    };
-  };
-  createdAt: string;
-  status: 'active' | 'suspended';
-  revenue?: number;
-  affiliates?: number;
-  admin?: string;
 }
 
 export interface Offer {
@@ -67,12 +38,12 @@ export interface Offer {
   expiresAt?: string;
   conversionFlow: string;
   restrictions?: string;
-  adminSettings: {
+  adminSettings?: {
     requireApproval: boolean;
-    scrubRate: number; // 0-100%
-    throttleRate: number; // 0-100%
+    scrubRate: number;
+    throttleRate: number;
     autoApprove: boolean;
-    holdPeriod: number; // days
+    holdPeriod: number;
   };
   postbackUrl?: string;
   globalPostbackEnabled: boolean;
@@ -96,13 +67,6 @@ export interface Affiliate {
   totalEarnings: number;
   conversions: number;
   clicks: number;
-  payoutTerms: 'weekly' | 'biweekly' | 'monthly' | 'net15' | 'net30';
-  minimumPayout: number;
-  taxInfo?: {
-    taxId?: string;
-    w9Submitted?: boolean;
-    taxRate?: number;
-  };
 }
 
 export interface Click {
@@ -187,8 +151,6 @@ export interface Postback {
   createdAt: string;
   lastFired?: string;
   fireCount: number;
-  isGlobal: boolean;
-  networkIntegration?: 'everflow' | 'hasoffers' | 'cake' | 'tune' | 'trackier' | 'cpabuild' | 'custom';
 }
 
 export interface Creative {
@@ -212,30 +174,4 @@ export interface Payout {
   requestedAt: string;
   processedAt?: string;
   notes?: string;
-  payoutType: 'fixed' | 'revshare';
-  revShareDetails?: {
-    percentage: number;
-    revenue: number;
-  };
-}
-
-export interface FraudProvider {
-  id: string;
-  name: string;
-  enabled: boolean;
-  apiKey: string;
-  endpoint: string;
-  threshold: number;
-  settings: Record<string, any>;
-}
-
-export interface NetworkIntegration {
-  id: string;
-  name: string;
-  type: 'everflow' | 'hasoffers' | 'cake' | 'tune' | 'trackier' | 'cpabuild';
-  apiUrl: string;
-  apiKey: string;
-  enabled: boolean;
-  postbackUrl: string;
-  settings: Record<string, any>;
 }
