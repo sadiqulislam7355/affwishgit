@@ -1,9 +1,30 @@
 import React from 'react';
 import { Bell, Search, Settings, LogOut, User, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 const Header: React.FC = () => {
   const { user, logout, isImpersonating, stopImpersonation } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+  };
+
+  const handleProfileClick = () => {
+    if (user?.role === 'affiliate') {
+      navigate('/profile');
+    } else if (user?.role === 'advertiser') {
+      navigate('/account');
+    } else {
+      navigate('/settings');
+    }
+  };
+
+  const handleSettingsClick = () => {
+    navigate('/settings');
+  };
 
   return (
     <header className="bg-white border-b border-gray-200 px-6 py-4">
@@ -50,17 +71,23 @@ const Header: React.FC = () => {
               </button>
               
               <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
-                <a href="#profile" className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                <button 
+                  onClick={handleProfileClick}
+                  className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                >
                   <User className="w-4 h-4 mr-3" />
                   Profile
-                </a>
-                <a href="#settings" className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                </button>
+                <button 
+                  onClick={handleSettingsClick}
+                  className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                >
                   <Settings className="w-4 h-4 mr-3" />
                   Settings
-                </a>
+                </button>
                 <hr className="my-2" />
                 <button 
-                  onClick={logout}
+                  onClick={handleLogout}
                   className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50"
                 >
                   <LogOut className="w-4 h-4 mr-3" />

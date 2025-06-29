@@ -1,6 +1,7 @@
 import React from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
 import LoginForm from './components/Auth/LoginForm';
 import Layout from './components/Layout/Layout';
 import Dashboard from './components/Pages/Dashboard';
@@ -93,6 +94,7 @@ const AppRoutes: React.FC = () => {
         </Routes>
       </Layout>
       <RoleSwitcher />
+      <Toaster position="top-right" />
     </Router>
   );
 };

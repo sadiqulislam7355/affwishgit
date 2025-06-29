@@ -15,59 +15,62 @@ import {
   Database
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 const Sidebar: React.FC = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const getMenuItems = () => {
     const baseItems = [
-      { icon: BarChart3, label: 'Dashboard', href: '#dashboard' },
+      { icon: BarChart3, label: 'Dashboard', path: '/dashboard' },
     ];
 
     switch (user?.role) {
       case 'super_admin':
         return [
           ...baseItems,
-          { icon: Database, label: 'Tenants', href: '#tenants' },
-          { icon: Users, label: 'All Users', href: '#users' },
-          { icon: Palette, label: 'White-Label', href: '#branding' },
-          { icon: Shield, label: 'Global Security', href: '#security' },
-          { icon: Settings, label: 'System Settings', href: '#settings' }
+          { icon: Database, label: 'Tenants', path: '/tenants' },
+          { icon: Users, label: 'All Users', path: '/users' },
+          { icon: Palette, label: 'White-Label', path: '/branding' },
+          { icon: Shield, label: 'Global Security', path: '/security' },
+          { icon: Settings, label: 'System Settings', path: '/settings' }
         ];
       
       case 'admin':
         return [
           ...baseItems,
-          { icon: Target, label: 'Offers', href: '#offers' },
-          { icon: Users, label: 'Affiliates', href: '#affiliates' },
-          { icon: Users, label: 'Advertisers', href: '#advertisers' },
-          { icon: Link, label: 'SmartLinks', href: '#smartlinks' },
-          { icon: Shield, label: 'Fraud Detection', href: '#fraud' },
-          { icon: PieChart, label: 'Analytics', href: '#analytics' },
-          { icon: CreditCard, label: 'Payouts', href: '#payouts' },
-          { icon: Settings, label: 'Network Settings', href: '#settings' }
+          { icon: Target, label: 'Offers', path: '/offers' },
+          { icon: Users, label: 'Affiliates', path: '/affiliates' },
+          { icon: Users, label: 'Advertisers', path: '/advertisers' },
+          { icon: Link, label: 'SmartLinks', path: '/smartlinks' },
+          { icon: Shield, label: 'Fraud Detection', path: '/fraud' },
+          { icon: PieChart, label: 'Analytics', path: '/analytics' },
+          { icon: CreditCard, label: 'Payouts', path: '/payouts' },
+          { icon: Settings, label: 'Network Settings', path: '/settings' }
         ];
       
       case 'affiliate':
         return [
           ...baseItems,
-          { icon: Target, label: 'Available Offers', href: '#offers' },
-          { icon: Link, label: 'My Links', href: '#links' },
-          { icon: BarChart3, label: 'Statistics', href: '#stats' },
-          { icon: FileText, label: 'Creatives', href: '#creatives' },
-          { icon: CreditCard, label: 'Payments', href: '#payments' },
-          { icon: Settings, label: 'Profile', href: '#profile' }
+          { icon: Target, label: 'Available Offers', path: '/offers' },
+          { icon: Link, label: 'My Links', path: '/links' },
+          { icon: BarChart3, label: 'Statistics', path: '/stats' },
+          { icon: FileText, label: 'Creatives', path: '/creatives' },
+          { icon: CreditCard, label: 'Payments', path: '/payments' },
+          { icon: Settings, label: 'Profile', path: '/profile' }
         ];
       
       case 'advertiser':
         return [
           ...baseItems,
-          { icon: Target, label: 'My Offers', href: '#offers' },
-          { icon: BarChart3, label: 'Campaign Stats', href: '#stats' },
-          { icon: FileText, label: 'Creatives', href: '#creatives' },
-          { icon: Users, label: 'Traffic Sources', href: '#traffic' },
-          { icon: CreditCard, label: 'Billing', href: '#billing' },
-          { icon: Settings, label: 'Account', href: '#account' }
+          { icon: Target, label: 'My Offers', path: '/offers' },
+          { icon: BarChart3, label: 'Campaign Stats', path: '/stats' },
+          { icon: FileText, label: 'Creatives', path: '/creatives' },
+          { icon: Users, label: 'Traffic Sources', path: '/traffic' },
+          { icon: CreditCard, label: 'Billing', path: '/billing' },
+          { icon: Settings, label: 'Account', path: '/account' }
         ];
       
       default:
@@ -76,6 +79,14 @@ const Sidebar: React.FC = () => {
   };
 
   const menuItems = getMenuItems();
+
+  const handleNavigation = (path: string) => {
+    navigate(path);
+  };
+
+  const isActivePath = (path: string) => {
+    return location.pathname === path;
+  };
 
   return (
     <div className="w-64 bg-white border-r border-gray-200 h-full flex flex-col">
@@ -93,17 +104,24 @@ const Sidebar: React.FC = () => {
       
       <nav className="flex-1 p-4">
         <ul className="space-y-2">
-          {menuItems.map((item, index) => (
-            <li key={index}>
-              <a
-                href={item.href}
-                className="flex items-center space-x-3 px-3 py-2 rounded-lg text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors group"
-              >
-                <item.icon className="w-5 h-5 group-hover:text-blue-600" />
-                <span className="font-medium">{item.label}</span>
-              </a>
-            </li>
-          ))}
+          {menuItems.map((item, index) => {
+            const isActive = isActivePath(item.path);
+            return (
+              <li key={index}>
+                <button
+                  onClick={() => handleNavigation(item.path)}
+                  className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors group ${
+                    isActive 
+                      ? 'bg-blue-50 text-blue-600 border border-blue-200' 
+                      : 'text-gray-700 hover:bg-blue-50 hover:text-blue-600'
+                  }`}
+                >
+                  <item.icon className={`w-5 h-5 ${isActive ? 'text-blue-600' : 'group-hover:text-blue-600'}`} />
+                  <span className="font-medium">{item.label}</span>
+                </button>
+              </li>
+            );
+          })}
         </ul>
       </nav>
       
