@@ -89,6 +89,33 @@ class ApiService {
     };
   }
 
+  async updateAffiliate(id: string, affiliateData: Partial<Affiliate>): Promise<ApiResponse<Affiliate>> {
+    await this.delay();
+    const affiliate = dataStore.updateAffiliate(id, affiliateData);
+    if (affiliate) {
+      return {
+        success: true,
+        data: affiliate,
+        message: 'Affiliate updated successfully'
+      };
+    }
+    return {
+      success: false,
+      data: null as any,
+      message: 'Affiliate not found'
+    };
+  }
+
+  async deleteAffiliate(id: string): Promise<ApiResponse<boolean>> {
+    await this.delay();
+    const success = dataStore.deleteAffiliate(id);
+    return {
+      success,
+      data: success,
+      message: success ? 'Affiliate deleted successfully' : 'Affiliate not found'
+    };
+  }
+
   // Postbacks
   async createPostback(postbackData: Omit<Postback, 'id'>): Promise<ApiResponse<Postback>> {
     await this.delay();
@@ -97,6 +124,24 @@ class ApiService {
       success: true,
       data: postback,
       message: 'Postback created successfully'
+    };
+  }
+
+  // Fraud Detection
+  async checkFraud(ipAddress: string): Promise<ApiResponse<any>> {
+    await this.delay();
+    const score = Math.random() * 100;
+    const risk = score > 70 ? 'high' : score > 40 ? 'medium' : 'low';
+    
+    return {
+      success: true,
+      data: {
+        score: Math.round(score),
+        risk,
+        blocked: risk === 'high',
+        reasons: risk === 'high' ? ['Suspicious IP', 'Bot detected'] : []
+      },
+      message: 'Fraud check completed'
     };
   }
 }

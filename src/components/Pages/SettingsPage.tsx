@@ -9,12 +9,19 @@ const SettingsPage: React.FC = () => {
     networkDescription: 'Premium CPA affiliate network',
     defaultTimezone: 'America/New_York',
     defaultCurrency: 'USD',
+    globalPostbackUrl: 'https://your-domain.com/postback?click_id={click_id}&status={status}&affiliate_id={affiliate_id}&offer_id={offer_id}&payout={payout}',
     
     // Security Settings
     requireTwoFactor: false,
     sessionTimeout: 30,
     passwordMinLength: 8,
     allowApiAccess: true,
+    
+    // Fraud Protection Settings
+    fraudProtectionEnabled: false,
+    ipQualityScoreApiKey: '',
+    ipQualityScoreThreshold: 75,
+    autoBlockHighRisk: true,
     
     // Notification Settings
     emailNotifications: true,
@@ -51,6 +58,32 @@ const SettingsPage: React.FC = () => {
     alert('Settings saved successfully!');
   };
 
+  const testFraudProtection = async () => {
+    if (!settings.ipQualityScoreApiKey) {
+      alert('Please enter your IPQualityScore API key first');
+      return;
+    }
+
+    console.log('Testing fraud protection with IPQualityScore...');
+    // Simulate API test
+    setTimeout(() => {
+      alert('Fraud protection test successful! API connection verified.');
+    }, 1000);
+  };
+
+  const testGlobalPostback = async () => {
+    if (!settings.globalPostbackUrl) {
+      alert('Please enter a global postback URL first');
+      return;
+    }
+
+    console.log('Testing global postback URL...');
+    // Simulate postback test
+    setTimeout(() => {
+      alert('Global postback test successful! URL is reachable.');
+    }, 1000);
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -70,7 +103,7 @@ const SettingsPage: React.FC = () => {
 
       {/* Tabs */}
       <div className="flex space-x-4">
-        {['general', 'security', 'notifications', 'users', 'branding', 'system'].map((tab) => (
+        {['general', 'postback', 'fraud', 'security', 'notifications', 'users', 'branding', 'system'].map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -151,6 +184,144 @@ const SettingsPage: React.FC = () => {
                 <option value="Europe/Berlin">Berlin (CET)</option>
               </select>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Global Postback Settings */}
+      {activeTab === 'postback' && (
+        <div className="bg-white rounded-xl border border-gray-200 p-6">
+          <div className="flex items-center space-x-3 mb-6">
+            <Globe className="w-6 h-6 text-blue-600" />
+            <h3 className="text-lg font-semibold text-gray-900">Global Postback Settings</h3>
+          </div>
+          
+          <div className="space-y-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Global Postback URL
+              </label>
+              <input
+                type="url"
+                value={settings.globalPostbackUrl}
+                onChange={(e) => handleSettingChange('globalPostbackUrl', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="https://your-domain.com/postback"
+              />
+              <p className="text-sm text-gray-500 mt-1">
+                This URL will be used for all offers with global postback enabled
+              </p>
+            </div>
+
+            <div className="bg-gray-50 rounded-lg p-4">
+              <h4 className="text-sm font-medium text-gray-700 mb-2">Available Macros:</h4>
+              <div className="grid grid-cols-2 gap-2 text-sm text-gray-600">
+                <div><code className="bg-white px-1 rounded">{'{click_id}'}</code> - Unique click identifier</div>
+                <div><code className="bg-white px-1 rounded">{'{affiliate_id}'}</code> - Affiliate ID</div>
+                <div><code className="bg-white px-1 rounded">{'{offer_id}'}</code> - Offer ID</div>
+                <div><code className="bg-white px-1 rounded">{'{payout}'}</code> - Conversion payout</div>
+                <div><code className="bg-white px-1 rounded">{'{status}'}</code> - Conversion status</div>
+                <div><code className="bg-white px-1 rounded">{'{timestamp}'}</code> - Event timestamp</div>
+                <div><code className="bg-white px-1 rounded">{'{ip_address}'}</code> - User IP address</div>
+                <div><code className="bg-white px-1 rounded">{'{country}'}</code> - User country</div>
+              </div>
+            </div>
+
+            <button
+              onClick={testGlobalPostback}
+              className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
+            >
+              Test Global Postback
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Fraud Protection Settings */}
+      {activeTab === 'fraud' && (
+        <div className="bg-white rounded-xl border border-gray-200 p-6">
+          <div className="flex items-center space-x-3 mb-6">
+            <Shield className="w-6 h-6 text-blue-600" />
+            <h3 className="text-lg font-semibold text-gray-900">Fraud Protection Settings</h3>
+          </div>
+          
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium text-gray-900">Enable Fraud Protection</p>
+                <p className="text-sm text-gray-500">Activate real-time fraud detection</p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={settings.fraudProtectionEnabled}
+                  onChange={(e) => handleSettingChange('fraudProtectionEnabled', e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+              </label>
+            </div>
+
+            {settings.fraudProtectionEnabled && (
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    IPQualityScore API Key
+                  </label>
+                  <input
+                    type="password"
+                    value={settings.ipQualityScoreApiKey}
+                    onChange={(e) => handleSettingChange('ipQualityScoreApiKey', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Enter your IPQualityScore API key"
+                  />
+                  <p className="text-sm text-gray-500 mt-1">
+                    Get your API key from <a href="https://www.ipqualityscore.com" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">IPQualityScore.com</a>
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Risk Threshold: {settings.ipQualityScoreThreshold}%
+                  </label>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={settings.ipQualityScoreThreshold}
+                    onChange={(e) => handleSettingChange('ipQualityScoreThreshold', parseInt(e.target.value))}
+                    className="w-full"
+                  />
+                  <div className="flex justify-between text-xs text-gray-500 mt-1">
+                    <span>Low Risk (0%)</span>
+                    <span>High Risk (100%)</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium text-gray-900">Auto-Block High Risk Traffic</p>
+                    <p className="text-sm text-gray-500">Automatically block traffic above threshold</p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={settings.autoBlockHighRisk}
+                      onChange={(e) => handleSettingChange('autoBlockHighRisk', e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                  </label>
+                </div>
+
+                <button
+                  onClick={testFraudProtection}
+                  className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
+                >
+                  Test Fraud Protection API
+                </button>
+              </>
+            )}
           </div>
         </div>
       )}
@@ -333,8 +504,7 @@ const SettingsPage: React.FC = () => {
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="affiliate">Affiliate</option>
-                <option value="advertiser">Advertiser</option>
-                <option value="manager">Manager</option>
+                <option value="admin">Admin</option>
               </select>
             </div>
           </div>

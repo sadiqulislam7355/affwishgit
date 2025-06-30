@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Plus, Search, Filter, MoreVertical, Target, DollarSign, TrendingUp, Eye, Edit, Trash2 } from 'lucide-react';
+import { apiService } from '../../services/api';
 
 interface Offer {
   id: string;
@@ -16,6 +17,9 @@ interface Offer {
   conversionRate: number;
   epc: number;
   createdAt: string;
+  url: string;
+  trackingUrl: string;
+  globalPostbackEnabled: boolean;
 }
 
 const mockOffers: Offer[] = [
@@ -33,7 +37,10 @@ const mockOffers: Offer[] = [
     clicks: 12450,
     conversionRate: 2.75,
     epc: 0.69,
-    createdAt: '2024-01-15'
+    createdAt: '2024-01-15',
+    url: 'https://example.com/dating-offer',
+    trackingUrl: 'https://track.affwish.com/click?offer_id=1&affiliate_id={affiliate_id}&click_id={click_id}',
+    globalPostbackEnabled: true
   },
   {
     id: '2',
@@ -49,7 +56,10 @@ const mockOffers: Offer[] = [
     clicks: 8920,
     conversionRate: 2.12,
     epc: 0.85,
-    createdAt: '2024-01-12'
+    createdAt: '2024-01-12',
+    url: 'https://example.com/crypto-offer',
+    trackingUrl: 'https://track.affwish.com/click?offer_id=2&affiliate_id={affiliate_id}&click_id={click_id}',
+    globalPostbackEnabled: true
   },
   {
     id: '3',
@@ -65,7 +75,10 @@ const mockOffers: Offer[] = [
     clicks: 18760,
     conversionRate: 3.02,
     epc: 0.45,
-    createdAt: '2024-01-10'
+    createdAt: '2024-01-10',
+    url: 'https://example.com/vpn-offer',
+    trackingUrl: 'https://track.affwish.com/click?offer_id=3&affiliate_id={affiliate_id}&click_id={click_id}',
+    globalPostbackEnabled: false
   },
   {
     id: '4',
@@ -81,15 +94,19 @@ const mockOffers: Offer[] = [
     clicks: 4560,
     conversionRate: 1.95,
     epc: 0.98,
-    createdAt: '2024-01-08'
+    createdAt: '2024-01-08',
+    url: 'https://example.com/casino-offer',
+    trackingUrl: 'https://track.affwish.com/click?offer_id=4&affiliate_id={affiliate_id}&click_id={click_id}',
+    globalPostbackEnabled: true
   }
 ];
 
 const OffersPage: React.FC = () => {
-  const [offers] = useState<Offer[]>(mockOffers);
+  const [offers, setOffers] = useState<Offer[]>(mockOffers);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
 
   const filteredOffers = offers.filter(offer => {
     const matchesSearch = offer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -125,6 +142,58 @@ const OffersPage: React.FC = () => {
       month: 'short',
       day: 'numeric'
     });
+  };
+
+  const handleEdit = (offer: Offer) => {
+    setSelectedOffer(offer);
+    setShowEditModal(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (selectedOffer) {
+      try {
+        const response = await apiService.updateOffer(selectedOffer.id, selectedOffer);
+        if (response.success) {
+          setOffers(prev => prev.map(offer => 
+            offer.id === selectedOffer.id ? selectedOffer : offer
+          ));
+          setShowEditModal(false);
+          setSelectedOffer(null);
+          alert('Offer updated successfully');
+        }
+      } catch (error) {
+        console.error('Failed to update offer:', error);
+        alert('Failed to update offer');
+      }
+    }
+  };
+
+  const handleDelete = async (offerId: string) => {
+    if (confirm('Are you sure you want to delete this offer?')) {
+      try {
+        const response = await apiService.deleteOffer(offerId);
+        if (response.success) {
+          setOffers(prev => prev.filter(offer => offer.id !== offerId));
+          alert('Offer deleted successfully');
+        }
+      } catch (error) {
+        console.error('Failed to delete offer:', error);
+        alert('Failed to delete offer');
+      }
+    }
+  };
+
+  const handleStatusChange = (offerId: string, newStatus: 'active' | 'paused' | 'expired') => {
+    setOffers(prev => prev.map(offer => 
+      offer.id === offerId 
+        ? { ...offer, status: newStatus }
+        : offer
+    ));
+    
+    const offer = offers.find(o => o.id === offerId);
+    if (offer) {
+      alert(`${offer.name} has been ${newStatus}`);
+    }
   };
 
   const totalStats = {
@@ -260,6 +329,9 @@ const OffersPage: React.FC = () => {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   EPC
                 </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Global Postback
+                </th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Actions
                 </th>
@@ -310,6 +382,15 @@ const OffersPage: React.FC = () => {
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     ${offer.epc.toFixed(2)}
                   </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                      offer.globalPostbackEnabled 
+                        ? 'bg-green-100 text-green-800' 
+                        : 'bg-gray-100 text-gray-800'
+                    }`}>
+                      {offer.globalPostbackEnabled ? 'Enabled' : 'Disabled'}
+                    </span>
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <div className="flex items-center justify-end space-x-2">
                       <button
@@ -318,15 +399,40 @@ const OffersPage: React.FC = () => {
                       >
                         <Eye className="w-4 h-4" />
                       </button>
-                      <button className="text-gray-600 hover:text-gray-900 transition-colors">
+                      <button
+                        onClick={() => handleEdit(offer)}
+                        className="text-gray-600 hover:text-gray-900 transition-colors"
+                      >
                         <Edit className="w-4 h-4" />
                       </button>
-                      <button className="text-red-600 hover:text-red-900 transition-colors">
+                      <button
+                        onClick={() => handleDelete(offer.id)}
+                        className="text-red-600 hover:text-red-900 transition-colors"
+                      >
                         <Trash2 className="w-4 h-4" />
                       </button>
-                      <button className="text-gray-400 hover:text-gray-600 transition-colors">
-                        <MoreVertical className="w-4 h-4" />
-                      </button>
+                      <div className="relative group">
+                        <button className="text-gray-400 hover:text-gray-600 transition-colors">
+                          <MoreVertical className="w-4 h-4" />
+                        </button>
+                        <div className="absolute right-0 top-full mt-1 w-32 bg-white rounded-lg shadow-lg border border-gray-200 py-1 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                          {offer.status === 'active' ? (
+                            <button
+                              onClick={() => handleStatusChange(offer.id, 'paused')}
+                              className="w-full text-left px-3 py-2 text-sm text-yellow-600 hover:bg-yellow-50"
+                            >
+                              Pause
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => handleStatusChange(offer.id, 'active')}
+                              className="w-full text-left px-3 py-2 text-sm text-green-600 hover:bg-green-50"
+                            >
+                              Activate
+                            </button>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </td>
                 </tr>
@@ -349,8 +455,116 @@ const OffersPage: React.FC = () => {
         )}
       </div>
 
+      {/* Edit Modal */}
+      {showEditModal && selectedOffer && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Edit Offer</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Offer Name</label>
+                <input
+                  type="text"
+                  value={selectedOffer.name}
+                  onChange={(e) => setSelectedOffer({...selectedOffer, name: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Advertiser</label>
+                <input
+                  type="text"
+                  value={selectedOffer.advertiser}
+                  onChange={(e) => setSelectedOffer({...selectedOffer, advertiser: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Payout</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={selectedOffer.payout}
+                  onChange={(e) => setSelectedOffer({...selectedOffer, payout: parseFloat(e.target.value)})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                <select
+                  value={selectedOffer.category}
+                  onChange={(e) => setSelectedOffer({...selectedOffer, category: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="Dating">Dating</option>
+                  <option value="Finance">Finance</option>
+                  <option value="Gaming">Gaming</option>
+                  <option value="Software">Software</option>
+                  <option value="Health">Health</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                <select
+                  value={selectedOffer.status}
+                  onChange={(e) => setSelectedOffer({...selectedOffer, status: e.target.value as any})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="active">Active</option>
+                  <option value="paused">Paused</option>
+                  <option value="expired">Expired</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Global Postback</label>
+                <select
+                  value={selectedOffer.globalPostbackEnabled ? 'enabled' : 'disabled'}
+                  onChange={(e) => setSelectedOffer({...selectedOffer, globalPostbackEnabled: e.target.value === 'enabled'})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="enabled">Enabled</option>
+                  <option value="disabled">Disabled</option>
+                </select>
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Offer URL</label>
+                <input
+                  type="url"
+                  value={selectedOffer.url}
+                  onChange={(e) => setSelectedOffer({...selectedOffer, url: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Tracking URL</label>
+                <input
+                  type="url"
+                  value={selectedOffer.trackingUrl}
+                  onChange={(e) => setSelectedOffer({...selectedOffer, trackingUrl: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+            </div>
+            <div className="flex space-x-3 mt-6">
+              <button
+                onClick={() => setShowEditModal(false)}
+                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveEdit}
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Offer Details Modal */}
-      {selectedOffer && (
+      {selectedOffer && !showEditModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl max-w-2xl w-full p-6">
             <div className="flex items-center justify-between mb-4">
@@ -407,6 +621,13 @@ const OffersPage: React.FC = () => {
               </div>
             </div>
             
+            <div className="mt-6">
+              <label className="text-sm font-medium text-gray-500">Global Postback</label>
+              <p className={`text-lg font-semibold ${selectedOffer.globalPostbackEnabled ? 'text-emerald-600' : 'text-gray-600'}`}>
+                {selectedOffer.globalPostbackEnabled ? 'Enabled' : 'Disabled'}
+              </p>
+            </div>
+            
             <div className="flex space-x-3 mt-6">
               <button
                 onClick={() => setSelectedOffer(null)}
@@ -414,8 +635,13 @@ const OffersPage: React.FC = () => {
               >
                 Close
               </button>
-              <button className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-                Get Link
+              <button 
+                onClick={() => {
+                  setShowEditModal(true);
+                }}
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Edit Offer
               </button>
             </div>
           </div>

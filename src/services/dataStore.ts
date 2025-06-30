@@ -22,7 +22,14 @@ class DataStore {
       createdAt: new Date().toISOString(),
       conversionFlow: 'Registration + Email Verification',
       restrictions: 'No adult traffic, no incentivized traffic',
-      globalPostbackEnabled: true
+      globalPostbackEnabled: true,
+      adminSettings: {
+        requireApproval: false,
+        scrubRate: 5,
+        throttleRate: 10,
+        autoApprove: true,
+        holdPeriod: 7
+      }
     },
     {
       id: '2',
@@ -43,7 +50,14 @@ class DataStore {
       createdAt: new Date().toISOString(),
       conversionFlow: 'Registration + KYC Verification + First Deposit',
       restrictions: 'Must be 18+, restricted countries apply',
-      globalPostbackEnabled: true
+      globalPostbackEnabled: true,
+      adminSettings: {
+        requireApproval: true,
+        scrubRate: 8,
+        throttleRate: 15,
+        autoApprove: false,
+        holdPeriod: 14
+      }
     }
   ];
 
@@ -65,6 +79,24 @@ class DataStore {
       totalEarnings: 15420.50,
       conversions: 342,
       clicks: 12450
+    },
+    {
+      id: '2',
+      name: 'Sarah Digital Expert',
+      email: 'sarah@digitalexpert.com',
+      phone: '+1-555-0456',
+      company: 'Digital Expert Agency',
+      website: 'https://digitalexpert.com',
+      country: 'CA',
+      paymentMethod: 'bank',
+      paymentDetails: 'Bank Account: ****1234',
+      trafficSources: ['SEO', 'PPC'],
+      experience: 'expert',
+      status: 'active',
+      createdAt: new Date().toISOString(),
+      totalEarnings: 23150.75,
+      conversions: 456,
+      clicks: 18920
     }
   ];
 
@@ -120,6 +152,24 @@ class DataStore {
     return newAffiliate;
   }
 
+  updateAffiliate(id: string, updates: Partial<Affiliate>): Affiliate | null {
+    const index = this.affiliates.findIndex(a => a.id === id);
+    if (index !== -1) {
+      this.affiliates[index] = { ...this.affiliates[index], ...updates };
+      return this.affiliates[index];
+    }
+    return null;
+  }
+
+  deleteAffiliate(id: string): boolean {
+    const index = this.affiliates.findIndex(a => a.id === id);
+    if (index !== -1) {
+      this.affiliates.splice(index, 1);
+      return true;
+    }
+    return false;
+  }
+
   // Postbacks
   getPostbacks(): Postback[] {
     return [...this.postbacks];
@@ -133,6 +183,24 @@ class DataStore {
     };
     this.postbacks.push(newPostback);
     return newPostback;
+  }
+
+  updatePostback(id: string, updates: Partial<Postback>): Postback | null {
+    const index = this.postbacks.findIndex(p => p.id === id);
+    if (index !== -1) {
+      this.postbacks[index] = { ...this.postbacks[index], ...updates };
+      return this.postbacks[index];
+    }
+    return null;
+  }
+
+  deletePostback(id: string): boolean {
+    const index = this.postbacks.findIndex(p => p.id === id);
+    if (index !== -1) {
+      this.postbacks.splice(index, 1);
+      return true;
+    }
+    return false;
   }
 }
 
