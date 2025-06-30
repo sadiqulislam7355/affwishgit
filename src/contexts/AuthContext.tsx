@@ -7,6 +7,9 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   switchRole: (role: UserRole) => void;
+  impersonate: (tenantId: string, userEmail: string) => Promise<void>;
+  stopImpersonation: () => void;
+  isImpersonating: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -21,13 +24,13 @@ export const useAuth = () => {
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [isImpersonating, setIsImpersonating] = useState(false);
 
   const login = async (email: string, password: string) => {
     try {
       const response = await apiService.login(email, password);
       
       if (response.success) {
-        // Determine role based on email for demo
         let role: UserRole = 'affiliate';
         
         if (email.includes('admin')) {
@@ -54,6 +57,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const logout = () => {
     setUser(null);
+    setIsImpersonating(false);
   };
 
   const switchRole = (role: UserRole) => {
@@ -62,12 +66,50 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
+  const impersonate = async (tenantId: string, userEmail: string) => {
+    if (user && user.role === 'admin') {
+      const role: UserRole = userEmail.includes('admin') ? 'admin' : 'affiliate';
+      const impersonatedUser: User = {
+        id: Math.random().toString(36).substr(2, 9),
+        name: role === 'admin' ? 'Network Admin' : 'Impersonated User',
+        email: userEmail,
+        role,
+        status: 'active',
+        createdAt: new Date().toISOString(),
+        lastLogin: new Date().toISOString()
+      };
+      
+      setUser(impersonatedUser);
+      setIsImpersonating(true);
+    }
+  };
+
+  const stopImpersonation = () => {
+    if (isImpersonating) {
+      const adminUser: User = {
+        id: Math.random().toString(36).substr(2, 9),
+        name: 'Network Admin',
+        email: 'admin@affwish.com',
+        role: 'admin',
+        status: 'active',
+        createdAt: new Date().toISOString(),
+        lastLogin: new Date().toISOString()
+      };
+      
+      setUser(adminUser);
+      setIsImpersonating(false);
+    }
+  };
+
   return (
     <AuthContext.Provider value={{ 
       user, 
       login, 
       logout, 
-      switchRole
+      switchRole,
+      impersonate,
+      stopImpersonation,
+      isImpersonating
     }}>
       {children}
     </AuthContext.Provider>

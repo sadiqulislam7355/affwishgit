@@ -7,11 +7,8 @@ import Layout from './components/Layout/Layout';
 import Dashboard from './components/Pages/Dashboard';
 import OffersPage from './components/Pages/OffersPage';
 import AffiliatesPage from './components/Pages/AffiliatesPage';
-import AnalyticsPage from './components/Pages/AnalyticsPage';
-import PayoutsPage from './components/Pages/PayoutsPage';
 import SettingsPage from './components/Pages/SettingsPage';
 import SmartLinksPage from './components/Pages/SmartLinksPage';
-import FraudDetectionPage from './components/Pages/FraudDetectionPage';
 import CreativesPage from './components/Pages/CreativesPage';
 import StatisticsPage from './components/Pages/StatisticsPage';
 import ProfilePage from './components/Pages/ProfilePage';
@@ -40,9 +37,6 @@ const AppRoutes: React.FC = () => {
               <Route path="/offers" element={<OffersPage />} />
               <Route path="/affiliates" element={<AffiliatesPage />} />
               <Route path="/smartlinks" element={<SmartLinksPage />} />
-              <Route path="/fraud" element={<FraudDetectionPage />} />
-              <Route path="/analytics" element={<AnalyticsPage />} />
-              <Route path="/payouts" element={<PayoutsPage />} />
               <Route path="/settings" element={<SettingsPage />} />
             </>
           )}

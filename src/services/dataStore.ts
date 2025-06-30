@@ -1,5 +1,4 @@
-// Local data store for demo functionality
-import { User, Offer, Affiliate, Postback, FraudAlert } from '../types';
+import { Offer, Affiliate, Postback } from '../types';
 
 class DataStore {
   private offers: Offer[] = [
@@ -7,6 +6,8 @@ class DataStore {
       id: '1',
       name: 'Premium Dating App',
       description: 'High-converting dating app with premium features',
+      advertiser: 'Dating Corp',
+      advertiserId: 'adv_1',
       payout: 25.00,
       payoutType: 'CPA',
       category: 'Dating',
@@ -16,22 +17,19 @@ class DataStore {
       trafficSources: ['Social', 'Email'],
       url: 'https://example.com/dating-offer',
       previewUrl: 'https://example.com/dating-preview',
+      trackingUrl: 'https://track.affwish.com/click?offer_id=1&affiliate_id={affiliate_id}&click_id={click_id}',
       caps: { daily: 100, weekly: 500, monthly: 2000 },
       createdAt: new Date().toISOString(),
       conversionFlow: 'Registration + Email Verification',
       restrictions: 'No adult traffic, no incentivized traffic',
-      globalPostbackEnabled: true,
-      pixelSettings: {
-        enabled: true,
-        pixelCode: '<img src="https://track.affwish.com/pixel?offer_id={offer_id}&click_id={click_id}" width="1" height="1" />',
-        iframeUrl: 'https://track.affwish.com/iframe?offer_id={offer_id}&click_id={click_id}',
-        postbackMacros: ['{click_id}', '{affiliate_id}', '{offer_id}', '{conversion_value}', '{timestamp}']
-      }
+      globalPostbackEnabled: true
     },
     {
       id: '2',
       name: 'Crypto Trading Platform',
       description: 'Advanced cryptocurrency trading platform',
+      advertiser: 'Crypto Exchange',
+      advertiserId: 'adv_2',
       payout: 40.00,
       payoutType: 'CPA',
       category: 'Finance',
@@ -40,16 +38,12 @@ class DataStore {
       devices: ['Desktop', 'Mobile'],
       trafficSources: ['Search', 'Display'],
       url: 'https://example.com/crypto-offer',
+      trackingUrl: 'https://track.affwish.com/click?offer_id=2&affiliate_id={affiliate_id}&click_id={click_id}',
       caps: { daily: 50, weekly: 300, monthly: 1200 },
       createdAt: new Date().toISOString(),
       conversionFlow: 'Registration + KYC Verification + First Deposit',
       restrictions: 'Must be 18+, restricted countries apply',
-      globalPostbackEnabled: true,
-      pixelSettings: {
-        enabled: true,
-        pixelCode: '<script>window.trackConversion({offer_id: "{offer_id}", click_id: "{click_id}"});</script>',
-        postbackMacros: ['{click_id}', '{affiliate_id}', '{offer_id}', '{conversion_value}', '{timestamp}', '{country}']
-      }
+      globalPostbackEnabled: true
     }
   ];
 
@@ -71,68 +65,10 @@ class DataStore {
       totalEarnings: 15420.50,
       conversions: 342,
       clicks: 12450
-    },
-    {
-      id: '2',
-      name: 'Sarah Digital Expert',
-      email: 'sarah@digitalexpert.com',
-      phone: '+1-555-0456',
-      company: 'Digital Expert Agency',
-      website: 'https://digitalexpert.com',
-      country: 'CA',
-      paymentMethod: 'bank',
-      paymentDetails: 'Bank Account: ****1234',
-      trafficSources: ['SEO', 'PPC'],
-      experience: 'expert',
-      status: 'active',
-      createdAt: new Date().toISOString(),
-      totalEarnings: 23150.75,
-      conversions: 456,
-      clicks: 18920
     }
   ];
 
-  private postbacks: Postback[] = [
-    {
-      id: '1',
-      name: 'Conversion Postback',
-      url: 'https://example.com/postback?click_id={click_id}&status=conversion',
-      method: 'GET',
-      parameters: {
-        affiliate_id: '{affiliate_id}',
-        offer_id: '{offer_id}',
-        conversion_value: '{conversion_value}',
-        timestamp: '{timestamp}'
-      },
-      status: 'active',
-      createdAt: new Date().toISOString(),
-      fireCount: 1250
-    }
-  ];
-
-  private fraudAlerts: FraudAlert[] = [
-    {
-      id: '1',
-      type: 'bot_detected',
-      severity: 'high',
-      description: 'Bot traffic detected from suspicious IP range',
-      affectedCampaign: 'Dating App Campaign',
-      timestamp: new Date().toISOString(),
-      status: 'open',
-      ipAddress: '192.168.1.100',
-      userAgent: 'Mozilla/5.0 (compatible; bot/1.0)'
-    },
-    {
-      id: '2',
-      type: 'proxy_detected',
-      severity: 'medium',
-      description: 'Proxy/VPN traffic detected',
-      affectedCampaign: 'Crypto Platform Campaign',
-      timestamp: new Date().toISOString(),
-      status: 'investigating',
-      ipAddress: '10.0.0.50'
-    }
-  ];
+  private postbacks: Postback[] = [];
 
   // Offers
   getOffers(): Offer[] {
@@ -142,7 +78,8 @@ class DataStore {
   addOffer(offer: Omit<Offer, 'id'>): Offer {
     const newOffer: Offer = {
       ...offer,
-      id: Date.now().toString()
+      id: Date.now().toString(),
+      trackingUrl: `https://track.affwish.com/click?offer_id=${Date.now()}&affiliate_id={affiliate_id}&click_id={click_id}`
     };
     this.offers.push(newOffer);
     return newOffer;
@@ -183,24 +120,6 @@ class DataStore {
     return newAffiliate;
   }
 
-  updateAffiliate(id: string, updates: Partial<Affiliate>): Affiliate | null {
-    const index = this.affiliates.findIndex(a => a.id === id);
-    if (index !== -1) {
-      this.affiliates[index] = { ...this.affiliates[index], ...updates };
-      return this.affiliates[index];
-    }
-    return null;
-  }
-
-  deleteAffiliate(id: string): boolean {
-    const index = this.affiliates.findIndex(a => a.id === id);
-    if (index !== -1) {
-      this.affiliates.splice(index, 1);
-      return true;
-    }
-    return false;
-  }
-
   // Postbacks
   getPostbacks(): Postback[] {
     return [...this.postbacks];
@@ -214,51 +133,6 @@ class DataStore {
     };
     this.postbacks.push(newPostback);
     return newPostback;
-  }
-
-  updatePostback(id: string, updates: Partial<Postback>): Postback | null {
-    const index = this.postbacks.findIndex(p => p.id === id);
-    if (index !== -1) {
-      this.postbacks[index] = { ...this.postbacks[index], ...updates };
-      return this.postbacks[index];
-    }
-    return null;
-  }
-
-  deletePostback(id: string): boolean {
-    const index = this.postbacks.findIndex(p => p.id === id);
-    if (index !== -1) {
-      this.postbacks.splice(index, 1);
-      return true;
-    }
-    return false;
-  }
-
-  // Fraud Alerts
-  getFraudAlerts(): FraudAlert[] {
-    return [...this.fraudAlerts];
-  }
-
-  addFraudAlert(alert: Omit<FraudAlert, 'id'>): FraudAlert {
-    const newAlert: FraudAlert = {
-      ...alert,
-      id: Date.now().toString()
-    };
-    this.fraudAlerts.push(newAlert);
-    return newAlert;
-  }
-
-  // Analytics
-  getAnalytics() {
-    return {
-      totalRevenue: 127450,
-      totalClicks: 45620,
-      totalConversions: 3420,
-      activeAffiliates: 342,
-      activeOffers: 156,
-      conversionRate: 11.2,
-      averageEPC: 2.67
-    };
   }
 }
 

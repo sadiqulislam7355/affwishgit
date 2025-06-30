@@ -1,5 +1,5 @@
 import { dataStore } from './dataStore';
-import { Offer, Affiliate, Postback, FraudAlert } from '../types';
+import { Offer, Affiliate, Postback } from '../types';
 
 export interface ApiResponse<T> {
   success: boolean;
@@ -89,43 +89,7 @@ class ApiService {
     };
   }
 
-  async updateAffiliate(id: string, affiliateData: Partial<Affiliate>): Promise<ApiResponse<Affiliate>> {
-    await this.delay();
-    const affiliate = dataStore.updateAffiliate(id, affiliateData);
-    if (affiliate) {
-      return {
-        success: true,
-        data: affiliate,
-        message: 'Affiliate updated successfully'
-      };
-    }
-    return {
-      success: false,
-      data: null as any,
-      message: 'Affiliate not found'
-    };
-  }
-
-  async deleteAffiliate(id: string): Promise<ApiResponse<boolean>> {
-    await this.delay();
-    const success = dataStore.deleteAffiliate(id);
-    return {
-      success,
-      data: success,
-      message: success ? 'Affiliate deleted successfully' : 'Affiliate not found'
-    };
-  }
-
   // Postbacks
-  async getPostbacks(): Promise<ApiResponse<Postback[]>> {
-    await this.delay();
-    return {
-      success: true,
-      data: dataStore.getPostbacks(),
-      message: 'Postbacks retrieved successfully'
-    };
-  }
-
   async createPostback(postbackData: Omit<Postback, 'id'>): Promise<ApiResponse<Postback>> {
     await this.delay();
     const postback = dataStore.addPostback(postbackData);
@@ -133,52 +97,6 @@ class ApiService {
       success: true,
       data: postback,
       message: 'Postback created successfully'
-    };
-  }
-
-  async testPostback(id: string): Promise<ApiResponse<any>> {
-    await this.delay();
-    return {
-      success: true,
-      data: { status: 'success', response: 'OK', responseTime: 150 },
-      message: 'Postback test successful'
-    };
-  }
-
-  // Fraud Detection
-  async checkFraud(data: any): Promise<ApiResponse<any>> {
-    await this.delay();
-    const score = Math.random() * 100;
-    const risk = score > 70 ? 'high' : score > 40 ? 'medium' : 'low';
-    
-    return {
-      success: true,
-      data: {
-        score: Math.round(score),
-        risk,
-        blocked: risk === 'high',
-        reasons: risk === 'high' ? ['Suspicious IP', 'Bot detected'] : []
-      },
-      message: 'Fraud check completed'
-    };
-  }
-
-  async getFraudAlerts(): Promise<ApiResponse<FraudAlert[]>> {
-    await this.delay();
-    return {
-      success: true,
-      data: dataStore.getFraudAlerts(),
-      message: 'Fraud alerts retrieved successfully'
-    };
-  }
-
-  // Analytics
-  async getAnalytics(params?: any): Promise<ApiResponse<any>> {
-    await this.delay();
-    return {
-      success: true,
-      data: dataStore.getAnalytics(),
-      message: 'Analytics retrieved successfully'
     };
   }
 }

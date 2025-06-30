@@ -3,13 +3,9 @@ import {
   BarChart3, 
   Users, 
   Target, 
-  Shield, 
   Settings, 
   CreditCard,
-  Globe,
   Link,
-  PieChart,
-  AlertTriangle,
   FileText
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
@@ -32,9 +28,6 @@ const Sidebar: React.FC = () => {
           { icon: Target, label: 'Offers', path: '/offers' },
           { icon: Users, label: 'Affiliates', path: '/affiliates' },
           { icon: Link, label: 'SmartLinks', path: '/smartlinks' },
-          { icon: Shield, label: 'Fraud Detection', path: '/fraud' },
-          { icon: PieChart, label: 'Analytics', path: '/analytics' },
-          { icon: CreditCard, label: 'Payouts', path: '/payouts' },
           { icon: Settings, label: 'Settings', path: '/settings' }
         ];
       
@@ -69,7 +62,7 @@ const Sidebar: React.FC = () => {
       <div className="p-6 border-b border-gray-200">
         <div className="flex items-center space-x-3">
           <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-emerald-500 rounded-lg flex items-center justify-center">
-            <Globe className="w-5 h-5 text-white" />
+            <Target className="w-5 h-5 text-white" />
           </div>
           <div>
             <h1 className="text-xl font-bold text-gray-900">AFFWISH</h1>
