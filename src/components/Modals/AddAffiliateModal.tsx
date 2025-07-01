@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { X, User, Mail, Phone, Globe, MapPin, CheckCircle } from 'lucide-react';
-import { apiService } from '../../services/api';
-import { Affiliate } from '../../types';
+import { supabase } from '../../lib/supabase';
+import { useAuth } from '../../contexts/AuthContext';
+import toast from 'react-hot-toast';
 
 interface AddAffiliateModalProps {
   isOpen: boolean;
@@ -10,9 +11,11 @@ interface AddAffiliateModalProps {
 }
 
 const AddAffiliateModal: React.FC<AddAffiliateModalProps> = ({ isOpen, onClose, onSuccess }) => {
+  const { user } = useAuth();
   const [formData, setFormData] = useState({
-    name: '',
+    fullName: '',
     email: '',
+    password: '',
     phone: '',
     company: '',
     website: '',
@@ -20,7 +23,7 @@ const AddAffiliateModal: React.FC<AddAffiliateModalProps> = ({ isOpen, onClose, 
     paymentMethod: 'paypal',
     paymentDetails: '',
     trafficSources: '',
-    experience: '',
+    experienceLevel: '',
     notes: ''
   });
   const [isLoading, setIsLoading] = useState(false);
@@ -31,37 +34,76 @@ const AddAffiliateModal: React.FC<AddAffiliateModalProps> = ({ isOpen, onClose, 
     setIsLoading(true);
 
     try {
-      const affiliateData: Omit<Affiliate, 'id'> = {
-        name: formData.name,
+      // Create user account
+      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
         email: formData.email,
-        phone: formData.phone || undefined,
-        company: formData.company || undefined,
-        website: formData.website || undefined,
-        country: formData.country,
-        paymentMethod: formData.paymentMethod as 'paypal' | 'bank' | 'crypto' | 'check',
-        paymentDetails: formData.paymentDetails,
-        trafficSources: formData.trafficSources.split(',').map(t => t.trim()).filter(t => t),
-        experience: formData.experience as 'beginner' | 'intermediate' | 'advanced' | 'expert',
-        status: 'pending',
-        createdAt: new Date().toISOString(),
-        notes: formData.notes || undefined,
-        totalEarnings: 0,
-        conversions: 0,
-        clicks: 0
-      };
+        password: formData.password,
+        email_confirm: true,
+        user_metadata: {
+          full_name: formData.fullName,
+          role: 'affiliate'
+        }
+      });
 
-      const response = await apiService.createAffiliate(affiliateData);
-      
-      if (response.success) {
+      if (authError) throw authError;
+
+      if (authData.user) {
+        // Create profile
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert({
+            id: authData.user.id,
+            email: formData.email,
+            full_name: formData.fullName,
+            role: 'affiliate',
+            status: 'active',
+            company: formData.company || null,
+            website: formData.website || null,
+            phone: formData.phone || null,
+            country: formData.country || null,
+            payment_method: formData.paymentMethod as any,
+            payment_details: { details: formData.paymentDetails },
+            traffic_sources: formData.trafficSources ? formData.trafficSources.split(',').map(s => s.trim()) : null,
+            experience_level: formData.experienceLevel || null,
+            email_verified: true
+          });
+
+        if (profileError) throw profileError;
+
+        // Generate affiliate ID and create affiliate record
+        const { data: affiliateIdData, error: affiliateIdError } = await supabase
+          .rpc('generate_affiliate_id');
+
+        if (affiliateIdError) throw affiliateIdError;
+
+        const { error: affiliateError } = await supabase
+          .from('affiliates')
+          .insert({
+            user_id: authData.user.id,
+            affiliate_id: affiliateIdData,
+            manager_id: user?.id,
+            notes: formData.notes || null,
+            total_earnings: 0,
+            total_clicks: 0,
+            total_conversions: 0,
+            conversion_rate: 0,
+            epc: 0
+          });
+
+        if (affiliateError) throw affiliateError;
+
         setSuccess(true);
+        toast.success('Affiliate created successfully!');
+        
         setTimeout(() => {
           onSuccess();
           onClose();
           resetForm();
         }, 1500);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to create affiliate:', error);
+      toast.error(error.message || 'Failed to create affiliate');
     } finally {
       setIsLoading(false);
     }
@@ -69,8 +111,9 @@ const AddAffiliateModal: React.FC<AddAffiliateModalProps> = ({ isOpen, onClose, 
 
   const resetForm = () => {
     setFormData({
-      name: '',
+      fullName: '',
       email: '',
+      password: '',
       phone: '',
       company: '',
       website: '',
@@ -78,7 +121,7 @@ const AddAffiliateModal: React.FC<AddAffiliateModalProps> = ({ isOpen, onClose, 
       paymentMethod: 'paypal',
       paymentDetails: '',
       trafficSources: '',
-      experience: '',
+      experienceLevel: '',
       notes: ''
     });
     setSuccess(false);
@@ -99,7 +142,7 @@ const AddAffiliateModal: React.FC<AddAffiliateModalProps> = ({ isOpen, onClose, 
         <div className="bg-white rounded-xl max-w-md w-full p-8 text-center">
           <CheckCircle className="w-16 h-16 text-emerald-500 mx-auto mb-4" />
           <h3 className="text-xl font-semibold text-gray-900 mb-2">Affiliate Added Successfully!</h3>
-          <p className="text-gray-600">The new affiliate has been added to your network.</p>
+          <p className="text-gray-600">The new affiliate has been added to your network with login credentials.</p>
         </div>
       </div>
     );
@@ -129,8 +172,8 @@ const AddAffiliateModal: React.FC<AddAffiliateModalProps> = ({ isOpen, onClose, 
                 <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                 <input
                   type="text"
-                  name="name"
-                  value={formData.name}
+                  name="fullName"
+                  value={formData.fullName}
                   onChange={handleChange}
                   className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="John Marketing Pro"
@@ -155,6 +198,22 @@ const AddAffiliateModal: React.FC<AddAffiliateModalProps> = ({ isOpen, onClose, 
                   required
                 />
               </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Password *
+              </label>
+              <input
+                type="password"
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Temporary password"
+                required
+                minLength={8}
+              />
             </div>
 
             <div>
@@ -294,8 +353,8 @@ const AddAffiliateModal: React.FC<AddAffiliateModalProps> = ({ isOpen, onClose, 
                 Experience Level
               </label>
               <select
-                name="experience"
-                value={formData.experience}
+                name="experienceLevel"
+                value={formData.experienceLevel}
                 onChange={handleChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >

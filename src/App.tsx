@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
-import LoginForm from './components/Auth/LoginForm';
+import AuthContainer from './components/Auth/AuthContainer';
 import Layout from './components/Layout/Layout';
 import Dashboard from './components/Pages/Dashboard';
 import OffersPage from './components/Pages/OffersPage';
@@ -14,13 +14,23 @@ import StatisticsPage from './components/Pages/StatisticsPage';
 import ProfilePage from './components/Pages/ProfilePage';
 import MyLinksPage from './components/Pages/MyLinksPage';
 import PaymentsPage from './components/Pages/PaymentsPage';
-import RoleSwitcher from './components/RoleSwitcher';
 
 const AppRoutes: React.FC = () => {
-  const { user } = useAuth();
+  const { user, profile, loading } = useAuth();
 
-  if (!user) {
-    return <LoginForm />;
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-emerald-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-emerald-500 rounded-2xl mx-auto mb-4 animate-pulse"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user || !profile) {
+    return <AuthContainer />;
   }
 
   return (
@@ -32,7 +42,7 @@ const AppRoutes: React.FC = () => {
           <Route path="/dashboard" element={<Dashboard />} />
           
           {/* Admin Routes */}
-          {user.role === 'admin' && (
+          {profile.role === 'admin' && (
             <>
               <Route path="/offers" element={<OffersPage />} />
               <Route path="/affiliates" element={<AffiliatesPage />} />
@@ -42,7 +52,7 @@ const AppRoutes: React.FC = () => {
           )}
           
           {/* Affiliate Routes */}
-          {user.role === 'affiliate' && (
+          {profile.role === 'affiliate' && (
             <>
               <Route path="/offers" element={<OffersPage />} />
               <Route path="/links" element={<MyLinksPage />} />
@@ -57,7 +67,6 @@ const AppRoutes: React.FC = () => {
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </Layout>
-      <RoleSwitcher />
       <Toaster position="top-right" />
     </Router>
   );

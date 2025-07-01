@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { X, Globe, DollarSign, Target, Calendar, CheckCircle, Settings } from 'lucide-react';
-import { apiService } from '../../services/api';
-import { Offer } from '../../types';
+import { supabase } from '../../lib/supabase';
+import { trackingSoftwareTemplates, cpaNetworkTemplates } from '../../lib/supabase';
+import { useAuth } from '../../contexts/AuthContext';
+import toast from 'react-hot-toast';
 
 interface AddOfferModalProps {
   isOpen: boolean;
@@ -10,6 +12,7 @@ interface AddOfferModalProps {
 }
 
 const AddOfferModal: React.FC<AddOfferModalProps> = ({ isOpen, onClose, onSuccess }) => {
+  const { user } = useAuth();
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -18,7 +21,7 @@ const AddOfferModal: React.FC<AddOfferModalProps> = ({ isOpen, onClose, onSucces
     payoutType: 'CPA',
     revSharePercentage: '',
     category: '',
-    url: '',
+    offerUrl: '',
     previewUrl: '',
     countries: '',
     devices: '',
@@ -31,6 +34,7 @@ const AddOfferModal: React.FC<AddOfferModalProps> = ({ isOpen, onClose, onSucces
     restrictions: '',
     postbackUrl: '',
     globalPostbackEnabled: true,
+    trackingTemplate: '',
     // Admin Settings
     requireApproval: false,
     scrubRate: '0',
@@ -46,54 +50,67 @@ const AddOfferModal: React.FC<AddOfferModalProps> = ({ isOpen, onClose, onSucces
     setIsLoading(true);
 
     try {
-      const offerData: Omit<Offer, 'id'> = {
+      // Generate tracking URL based on template
+      let trackingUrl = '';
+      if (formData.trackingTemplate && trackingSoftwareTemplates[formData.trackingTemplate]) {
+        trackingUrl = trackingSoftwareTemplates[formData.trackingTemplate].trackingUrl;
+      } else if (formData.trackingTemplate && cpaNetworkTemplates[formData.trackingTemplate]) {
+        trackingUrl = cpaNetworkTemplates[formData.trackingTemplate].trackingUrl;
+      } else {
+        trackingUrl = `https://track.affwish.com/click?offer_id={offer_id}&affiliate_id={affiliate_id}&click_id={click_id}`;
+      }
+
+      const offerData = {
         name: formData.name,
-        description: formData.description,
+        description: formData.description || null,
         advertiser: formData.advertiser,
-        advertiserId: 'adv_' + Date.now(),
+        advertiser_id: `adv_${Date.now()}`,
         payout: parseFloat(formData.payout),
-        payoutType: formData.payoutType as 'CPA' | 'CPI' | 'CPL' | 'RevShare',
-        revSharePercentage: formData.payoutType === 'RevShare' ? parseFloat(formData.revSharePercentage) : undefined,
+        payout_type: formData.payoutType as any,
+        rev_share_percentage: formData.payoutType === 'RevShare' ? parseFloat(formData.revSharePercentage) : null,
         category: formData.category,
-        status: 'active',
-        countries: formData.countries.split(',').map(c => c.trim()).filter(c => c),
-        devices: formData.devices.split(',').map(d => d.trim()).filter(d => d),
-        trafficSources: formData.trafficSources.split(',').map(t => t.trim()).filter(t => t),
-        url: formData.url,
-        previewUrl: formData.previewUrl || undefined,
-        trackingUrl: `https://track.affwish.com/click?offer_id={offer_id}&affiliate_id={affiliate_id}&click_id={click_id}`,
+        status: 'active' as any,
+        countries: formData.countries ? formData.countries.split(',').map(c => c.trim()) : [],
+        devices: formData.devices ? formData.devices.split(',').map(d => d.trim()) : [],
+        traffic_sources: formData.trafficSources ? formData.trafficSources.split(',').map(t => t.trim()) : [],
+        offer_url: formData.offerUrl,
+        preview_url: formData.previewUrl || null,
+        tracking_url: trackingUrl,
+        postback_url: formData.postbackUrl || null,
+        global_postback_enabled: formData.globalPostbackEnabled,
         caps: {
-          daily: formData.dailyCap ? parseInt(formData.dailyCap) : undefined,
-          weekly: formData.weeklyCap ? parseInt(formData.weeklyCap) : undefined,
-          monthly: formData.monthlyCap ? parseInt(formData.monthlyCap) : undefined,
+          daily: formData.dailyCap ? parseInt(formData.dailyCap) : null,
+          weekly: formData.weeklyCap ? parseInt(formData.weeklyCap) : null,
+          monthly: formData.monthlyCap ? parseInt(formData.monthlyCap) : null,
         },
-        createdAt: new Date().toISOString(),
-        expiresAt: formData.expiresAt || undefined,
-        conversionFlow: formData.conversionFlow,
-        restrictions: formData.restrictions || undefined,
-        postbackUrl: formData.postbackUrl || undefined,
-        globalPostbackEnabled: formData.globalPostbackEnabled,
-        adminSettings: {
-          requireApproval: formData.requireApproval,
-          scrubRate: parseFloat(formData.scrubRate),
-          throttleRate: parseFloat(formData.throttleRate),
-          autoApprove: formData.autoApprove,
-          holdPeriod: parseInt(formData.holdPeriod)
-        }
+        expires_at: formData.expiresAt || null,
+        conversion_flow: formData.conversionFlow || null,
+        restrictions: formData.restrictions || null,
+        require_approval: formData.requireApproval,
+        scrub_rate: parseFloat(formData.scrubRate),
+        throttle_rate: parseFloat(formData.throttleRate),
+        auto_approve: formData.autoApprove,
+        hold_period: parseInt(formData.holdPeriod),
+        created_by: user?.id
       };
 
-      const response = await apiService.createOffer(offerData);
+      const { error } = await supabase
+        .from('offers')
+        .insert(offerData);
+
+      if (error) throw error;
+
+      setSuccess(true);
+      toast.success('Offer created successfully!');
       
-      if (response.success) {
-        setSuccess(true);
-        setTimeout(() => {
-          onSuccess();
-          onClose();
-          resetForm();
-        }, 1500);
-      }
-    } catch (error) {
+      setTimeout(() => {
+        onSuccess();
+        onClose();
+        resetForm();
+      }, 1500);
+    } catch (error: any) {
       console.error('Failed to create offer:', error);
+      toast.error(error.message || 'Failed to create offer');
     } finally {
       setIsLoading(false);
     }
@@ -108,7 +125,7 @@ const AddOfferModal: React.FC<AddOfferModalProps> = ({ isOpen, onClose, onSucces
       payoutType: 'CPA',
       revSharePercentage: '',
       category: '',
-      url: '',
+      offerUrl: '',
       previewUrl: '',
       countries: '',
       devices: '',
@@ -121,6 +138,7 @@ const AddOfferModal: React.FC<AddOfferModalProps> = ({ isOpen, onClose, onSucces
       restrictions: '',
       postbackUrl: '',
       globalPostbackEnabled: true,
+      trackingTemplate: '',
       requireApproval: false,
       scrubRate: '0',
       throttleRate: '0',
@@ -148,7 +166,7 @@ const AddOfferModal: React.FC<AddOfferModalProps> = ({ isOpen, onClose, onSucces
         <div className="bg-white rounded-xl max-w-md w-full p-8 text-center">
           <CheckCircle className="w-16 h-16 text-emerald-500 mx-auto mb-4" />
           <h3 className="text-xl font-semibold text-gray-900 mb-2">Offer Created Successfully!</h3>
-          <p className="text-gray-600">Your new offer has been added to the network with advanced settings.</p>
+          <p className="text-gray-600">Your new offer has been added to the network with tracking URLs.</p>
         </div>
       </div>
     );
@@ -294,6 +312,37 @@ const AddOfferModal: React.FC<AddOfferModalProps> = ({ isOpen, onClose, onSucces
             </div>
           </div>
 
+          {/* Tracking Template Selection */}
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Tracking Configuration</h3>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Tracking Software Template
+              </label>
+              <select
+                name="trackingTemplate"
+                value={formData.trackingTemplate}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="">Custom/Default</option>
+                <optgroup label="Tracking Software">
+                  {Object.entries(trackingSoftwareTemplates).map(([key, template]) => (
+                    <option key={key} value={key}>{template.name}</option>
+                  ))}
+                </optgroup>
+                <optgroup label="CPA Networks">
+                  {Object.entries(cpaNetworkTemplates).map(([key, template]) => (
+                    <option key={key} value={key}>{template.name}</option>
+                  ))}
+                </optgroup>
+              </select>
+              <p className="text-sm text-gray-500 mt-1">
+                Select a template to auto-generate tracking URLs with proper macros
+              </p>
+            </div>
+          </div>
+
           {/* URLs and Tracking */}
           <div>
             <h3 className="text-lg font-semibold text-gray-900 mb-4">URLs & Tracking</h3>
@@ -306,8 +355,8 @@ const AddOfferModal: React.FC<AddOfferModalProps> = ({ isOpen, onClose, onSucces
                   <Globe className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                   <input
                     type="url"
-                    name="url"
-                    value={formData.url}
+                    name="offerUrl"
+                    value={formData.offerUrl}
                     onChange={handleChange}
                     className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="https://example.com/offer"
@@ -361,94 +410,6 @@ const AddOfferModal: React.FC<AddOfferModalProps> = ({ isOpen, onClose, onSucces
                 <label className="text-sm text-gray-700">
                   Enable global postback URL for this offer
                 </label>
-              </div>
-            </div>
-          </div>
-
-          {/* Admin Settings */}
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center space-x-2">
-              <Settings className="w-5 h-5" />
-              <span>Admin Settings</span>
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-4">
-                <div className="flex items-center space-x-3">
-                  <input
-                    type="checkbox"
-                    name="requireApproval"
-                    checked={formData.requireApproval}
-                    onChange={handleChange}
-                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                  />
-                  <label className="text-sm text-gray-700">
-                    Require manual approval for conversions
-                  </label>
-                </div>
-
-                <div className="flex items-center space-x-3">
-                  <input
-                    type="checkbox"
-                    name="autoApprove"
-                    checked={formData.autoApprove}
-                    onChange={handleChange}
-                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                  />
-                  <label className="text-sm text-gray-700">
-                    Auto-approve low-risk conversions
-                  </label>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Scrub Rate (%)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    min="0"
-                    max="100"
-                    name="scrubRate"
-                    value={formData.scrubRate}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="5.0"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Throttle Rate (%)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    min="0"
-                    max="100"
-                    name="throttleRate"
-                    value={formData.throttleRate}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="10.0"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Hold Period (days)
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    name="holdPeriod"
-                    value={formData.holdPeriod}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="7"
-                  />
-                </div>
               </div>
             </div>
           </div>
@@ -560,6 +521,94 @@ const AddOfferModal: React.FC<AddOfferModalProps> = ({ isOpen, onClose, onSucces
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="2000"
                 />
+              </div>
+            </div>
+          </div>
+
+          {/* Admin Settings */}
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center space-x-2">
+              <Settings className="w-5 h-5" />
+              <span>Admin Settings</span>
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <div className="flex items-center space-x-3">
+                  <input
+                    type="checkbox"
+                    name="requireApproval"
+                    checked={formData.requireApproval}
+                    onChange={handleChange}
+                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  />
+                  <label className="text-sm text-gray-700">
+                    Require manual approval for conversions
+                  </label>
+                </div>
+
+                <div className="flex items-center space-x-3">
+                  <input
+                    type="checkbox"
+                    name="autoApprove"
+                    checked={formData.autoApprove}
+                    onChange={handleChange}
+                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  />
+                  <label className="text-sm text-gray-700">
+                    Auto-approve low-risk conversions
+                  </label>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Scrub Rate (%)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="100"
+                    name="scrubRate"
+                    value={formData.scrubRate}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="5.0"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Throttle Rate (%)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="100"
+                    name="throttleRate"
+                    value={formData.throttleRate}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="10.0"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Hold Period (days)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    name="holdPeriod"
+                    value={formData.holdPeriod}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="7"
+                  />
+                </div>
               </div>
             </div>
           </div>
