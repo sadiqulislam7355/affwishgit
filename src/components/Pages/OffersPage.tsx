@@ -1,112 +1,56 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, Search, Filter, MoreVertical, Target, DollarSign, TrendingUp, Eye, Edit, Trash2 } from 'lucide-react';
 import { apiService } from '../../services/api';
+import { useAuth } from '../../contexts/AuthContext';
+import AddOfferModal from '../Modals/AddOfferModal';
 
 interface Offer {
   id: string;
   name: string;
   advertiser: string;
   payout: number;
-  payoutType: 'CPA' | 'CPI' | 'CPL' | 'RevShare';
+  payout_type: 'CPA' | 'CPI' | 'CPL' | 'RevShare';
   category: string;
   status: 'active' | 'paused' | 'expired';
   countries: string[];
   devices: string[];
-  conversions: number;
-  clicks: number;
-  conversionRate: number;
-  epc: number;
-  createdAt: string;
-  url: string;
-  trackingUrl: string;
-  globalPostbackEnabled: boolean;
+  conversions?: number;
+  clicks?: number;
+  conversion_rate?: number;
+  epc?: number;
+  created_at: string;
+  offer_url: string;
+  tracking_url: string;
+  global_postback_enabled: boolean;
 }
 
-const mockOffers: Offer[] = [
-  {
-    id: '1',
-    name: 'Premium Dating App',
-    advertiser: 'Dating Corp',
-    payout: 25.00,
-    payoutType: 'CPA',
-    category: 'Dating',
-    status: 'active',
-    countries: ['US', 'CA', 'UK'],
-    devices: ['Mobile', 'Desktop'],
-    conversions: 342,
-    clicks: 12450,
-    conversionRate: 2.75,
-    epc: 0.69,
-    createdAt: '2024-01-15',
-    url: 'https://example.com/dating-offer',
-    trackingUrl: 'https://track.affwish.com/click?offer_id=1&affiliate_id={affiliate_id}&click_id={click_id}',
-    globalPostbackEnabled: true
-  },
-  {
-    id: '2',
-    name: 'Crypto Trading Platform',
-    advertiser: 'Crypto Exchange',
-    payout: 40.00,
-    payoutType: 'CPA',
-    category: 'Finance',
-    status: 'active',
-    countries: ['US', 'AU', 'DE'],
-    devices: ['Desktop', 'Mobile'],
-    conversions: 189,
-    clicks: 8920,
-    conversionRate: 2.12,
-    epc: 0.85,
-    createdAt: '2024-01-12',
-    url: 'https://example.com/crypto-offer',
-    trackingUrl: 'https://track.affwish.com/click?offer_id=2&affiliate_id={affiliate_id}&click_id={click_id}',
-    globalPostbackEnabled: true
-  },
-  {
-    id: '3',
-    name: 'VPN Service Trial',
-    advertiser: 'VPN Corp',
-    payout: 15.00,
-    payoutType: 'CPA',
-    category: 'Software',
-    status: 'active',
-    countries: ['Global'],
-    devices: ['Desktop', 'Mobile', 'Tablet'],
-    conversions: 567,
-    clicks: 18760,
-    conversionRate: 3.02,
-    epc: 0.45,
-    createdAt: '2024-01-10',
-    url: 'https://example.com/vpn-offer',
-    trackingUrl: 'https://track.affwish.com/click?offer_id=3&affiliate_id={affiliate_id}&click_id={click_id}',
-    globalPostbackEnabled: false
-  },
-  {
-    id: '4',
-    name: 'Online Casino',
-    advertiser: 'Casino Group',
-    payout: 50.00,
-    payoutType: 'CPA',
-    category: 'Gaming',
-    status: 'paused',
-    countries: ['US', 'CA'],
-    devices: ['Desktop', 'Mobile'],
-    conversions: 89,
-    clicks: 4560,
-    conversionRate: 1.95,
-    epc: 0.98,
-    createdAt: '2024-01-08',
-    url: 'https://example.com/casino-offer',
-    trackingUrl: 'https://track.affwish.com/click?offer_id=4&affiliate_id={affiliate_id}&click_id={click_id}',
-    globalPostbackEnabled: true
-  }
-];
-
 const OffersPage: React.FC = () => {
-  const [offers, setOffers] = useState<Offer[]>(mockOffers);
+  const { profile } = useAuth();
+  const [offers, setOffers] = useState<Offer[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
+
+  useEffect(() => {
+    loadOffers();
+  }, []);
+
+  const loadOffers = async () => {
+    setLoading(true);
+    try {
+      const response = await apiService.getOffers();
+      if (response.success && response.data) {
+        setOffers(response.data);
+      }
+    } catch (error) {
+      console.error('Failed to load offers:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filteredOffers = offers.filter(offer => {
     const matchesSearch = offer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -154,9 +98,7 @@ const OffersPage: React.FC = () => {
       try {
         const response = await apiService.updateOffer(selectedOffer.id, selectedOffer);
         if (response.success) {
-          setOffers(prev => prev.map(offer => 
-            offer.id === selectedOffer.id ? selectedOffer : offer
-          ));
+          await loadOffers();
           setShowEditModal(false);
           setSelectedOffer(null);
           alert('Offer updated successfully');
@@ -173,7 +115,7 @@ const OffersPage: React.FC = () => {
       try {
         const response = await apiService.deleteOffer(offerId);
         if (response.success) {
-          setOffers(prev => prev.filter(offer => offer.id !== offerId));
+          await loadOffers();
           alert('Offer deleted successfully');
         }
       } catch (error) {
@@ -183,38 +125,64 @@ const OffersPage: React.FC = () => {
     }
   };
 
-  const handleStatusChange = (offerId: string, newStatus: 'active' | 'paused' | 'expired') => {
-    setOffers(prev => prev.map(offer => 
-      offer.id === offerId 
-        ? { ...offer, status: newStatus }
-        : offer
-    ));
-    
-    const offer = offers.find(o => o.id === offerId);
-    if (offer) {
-      alert(`${offer.name} has been ${newStatus}`);
+  const handleStatusChange = async (offerId: string, newStatus: 'active' | 'paused' | 'expired') => {
+    try {
+      const offer = offers.find(o => o.id === offerId);
+      if (offer) {
+        const response = await apiService.updateOffer(offerId, { ...offer, status: newStatus });
+        if (response.success) {
+          await loadOffers();
+          alert(`${offer.name} has been ${newStatus}`);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to update offer status:', error);
+      alert('Failed to update offer status');
     }
   };
 
   const totalStats = {
     totalOffers: offers.length,
     activeOffers: offers.filter(o => o.status === 'active').length,
-    totalConversions: offers.reduce((sum, o) => sum + o.conversions, 0),
-    avgEPC: offers.reduce((sum, o) => sum + o.epc, 0) / offers.length
+    totalConversions: offers.reduce((sum, o) => sum + (o.conversions || 0), 0),
+    avgEPC: offers.length > 0 ? offers.reduce((sum, o) => sum + (o.epc || 0), 0) / offers.length : 0
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-emerald-500 rounded-2xl mx-auto mb-4 animate-pulse"></div>
+          <p className="text-gray-600">Loading offers...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Offers</h1>
-          <p className="text-gray-600">Manage and monitor your advertising offers</p>
+          <h1 className="text-2xl font-bold text-gray-900">
+            {profile?.role === 'admin' ? 'Manage Offers' : 'Available Offers'}
+          </h1>
+          <p className="text-gray-600">
+            {profile?.role === 'admin' 
+              ? 'Manage and monitor your advertising offers' 
+              : 'Browse and promote available offers'
+            }
+          </p>
         </div>
-        <button className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-          <Plus className="w-4 h-4 mr-2" />
-          Add Offer
-        </button>
+        {profile?.role === 'admin' && (
+          <button 
+            onClick={() => setShowAddModal(true)}
+            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Add Offer
+          </button>
+        )}
       </div>
 
       {/* Stats Cards */}
@@ -321,13 +289,7 @@ const OffersPage: React.FC = () => {
                   Status
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Conversions
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  CVR
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  EPC
+                  Countries
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Global Postback
@@ -350,7 +312,7 @@ const OffersPage: React.FC = () => {
                       <div className="ml-4">
                         <div className="text-sm font-medium text-gray-900">{offer.name}</div>
                         <div className="text-sm text-gray-500">
-                          {offer.countries.join(', ')} • {offer.devices.join(', ')}
+                          {offer.countries?.slice(0, 3).join(', ')} • {offer.devices?.join(', ')}
                         </div>
                       </div>
                     </div>
@@ -360,7 +322,7 @@ const OffersPage: React.FC = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     {formatCurrency(offer.payout)}
-                    <div className="text-xs text-gray-500">{offer.payoutType}</div>
+                    <div className="text-xs text-gray-500">{offer.payout_type}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800 rounded-full">
@@ -373,22 +335,16 @@ const OffersPage: React.FC = () => {
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    <div className="font-medium">{offer.conversions}</div>
-                    <div className="text-xs text-gray-500">{offer.clicks.toLocaleString()} clicks</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-green-600">
-                    {offer.conversionRate.toFixed(2)}%
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    ${offer.epc.toFixed(2)}
+                    {offer.countries?.slice(0, 2).join(', ')}
+                    {offer.countries && offer.countries.length > 2 && ` +${offer.countries.length - 2}`}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                      offer.globalPostbackEnabled 
+                      offer.global_postback_enabled 
                         ? 'bg-green-100 text-green-800' 
                         : 'bg-gray-100 text-gray-800'
                     }`}>
-                      {offer.globalPostbackEnabled ? 'Enabled' : 'Disabled'}
+                      {offer.global_postback_enabled ? 'Enabled' : 'Disabled'}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -399,40 +355,44 @@ const OffersPage: React.FC = () => {
                       >
                         <Eye className="w-4 h-4" />
                       </button>
-                      <button
-                        onClick={() => handleEdit(offer)}
-                        className="text-gray-600 hover:text-gray-900 transition-colors"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(offer.id)}
-                        className="text-red-600 hover:text-red-900 transition-colors"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                      <div className="relative group">
-                        <button className="text-gray-400 hover:text-gray-600 transition-colors">
-                          <MoreVertical className="w-4 h-4" />
-                        </button>
-                        <div className="absolute right-0 top-full mt-1 w-32 bg-white rounded-lg shadow-lg border border-gray-200 py-1 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
-                          {offer.status === 'active' ? (
-                            <button
-                              onClick={() => handleStatusChange(offer.id, 'paused')}
-                              className="w-full text-left px-3 py-2 text-sm text-yellow-600 hover:bg-yellow-50"
-                            >
-                              Pause
+                      {profile?.role === 'admin' && (
+                        <>
+                          <button
+                            onClick={() => handleEdit(offer)}
+                            className="text-gray-600 hover:text-gray-900 transition-colors"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(offer.id)}
+                            className="text-red-600 hover:text-red-900 transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                          <div className="relative group">
+                            <button className="text-gray-400 hover:text-gray-600 transition-colors">
+                              <MoreVertical className="w-4 h-4" />
                             </button>
-                          ) : (
-                            <button
-                              onClick={() => handleStatusChange(offer.id, 'active')}
-                              className="w-full text-left px-3 py-2 text-sm text-green-600 hover:bg-green-50"
-                            >
-                              Activate
-                            </button>
-                          )}
-                        </div>
-                      </div>
+                            <div className="absolute right-0 top-full mt-1 w-32 bg-white rounded-lg shadow-lg border border-gray-200 py-1 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                              {offer.status === 'active' ? (
+                                <button
+                                  onClick={() => handleStatusChange(offer.id, 'paused')}
+                                  className="w-full text-left px-3 py-2 text-sm text-yellow-600 hover:bg-yellow-50"
+                                >
+                                  Pause
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={() => handleStatusChange(offer.id, 'active')}
+                                  className="w-full text-left px-3 py-2 text-sm text-green-600 hover:bg-green-50"
+                                >
+                                  Activate
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -454,6 +414,16 @@ const OffersPage: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Add Offer Modal */}
+      <AddOfferModal 
+        isOpen={showAddModal} 
+        onClose={() => setShowAddModal(false)} 
+        onSuccess={() => {
+          loadOffers();
+          setShowAddModal(false);
+        }}
+      />
 
       {/* Edit Modal */}
       {showEditModal && selectedOffer && (
@@ -518,8 +488,8 @@ const OffersPage: React.FC = () => {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Global Postback</label>
                 <select
-                  value={selectedOffer.globalPostbackEnabled ? 'enabled' : 'disabled'}
-                  onChange={(e) => setSelectedOffer({...selectedOffer, globalPostbackEnabled: e.target.value === 'enabled'})}
+                  value={selectedOffer.global_postback_enabled ? 'enabled' : 'disabled'}
+                  onChange={(e) => setSelectedOffer({...selectedOffer, global_postback_enabled: e.target.value === 'enabled'})}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
                   <option value="enabled">Enabled</option>
@@ -530,8 +500,8 @@ const OffersPage: React.FC = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Offer URL</label>
                 <input
                   type="url"
-                  value={selectedOffer.url}
-                  onChange={(e) => setSelectedOffer({...selectedOffer, url: e.target.value})}
+                  value={selectedOffer.offer_url}
+                  onChange={(e) => setSelectedOffer({...selectedOffer, offer_url: e.target.value})}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
@@ -539,8 +509,8 @@ const OffersPage: React.FC = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Tracking URL</label>
                 <input
                   type="url"
-                  value={selectedOffer.trackingUrl}
-                  onChange={(e) => setSelectedOffer({...selectedOffer, trackingUrl: e.target.value})}
+                  value={selectedOffer.tracking_url}
+                  onChange={(e) => setSelectedOffer({...selectedOffer, tracking_url: e.target.value})}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
@@ -586,7 +556,7 @@ const OffersPage: React.FC = () => {
                 <div>
                   <label className="text-sm font-medium text-gray-500">Payout</label>
                   <p className="text-lg font-semibold text-gray-900">
-                    {formatCurrency(selectedOffer.payout)} ({selectedOffer.payoutType})
+                    {formatCurrency(selectedOffer.payout)} ({selectedOffer.payout_type})
                   </p>
                 </div>
                 <div>
@@ -595,7 +565,7 @@ const OffersPage: React.FC = () => {
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-500">Countries</label>
-                  <p className="text-lg font-semibold text-gray-900">{selectedOffer.countries.join(', ')}</p>
+                  <p className="text-lg font-semibold text-gray-900">{selectedOffer.countries?.join(', ')}</p>
                 </div>
               </div>
               
@@ -607,25 +577,20 @@ const OffersPage: React.FC = () => {
                   </span>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-500">Conversions</label>
-                  <p className="text-lg font-semibold text-gray-900">{selectedOffer.conversions}</p>
+                  <label className="text-sm font-medium text-gray-500">Devices</label>
+                  <p className="text-lg font-semibold text-gray-900">{selectedOffer.devices?.join(', ')}</p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-500">Conversion Rate</label>
-                  <p className="text-lg font-semibold text-emerald-600">{selectedOffer.conversionRate.toFixed(2)}%</p>
+                  <label className="text-sm font-medium text-gray-500">Created</label>
+                  <p className="text-lg font-semibold text-gray-900">{formatDate(selectedOffer.created_at)}</p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-500">EPC</label>
-                  <p className="text-lg font-semibold text-gray-900">${selectedOffer.epc.toFixed(2)}</p>
+                  <label className="text-sm font-medium text-gray-500">Global Postback</label>
+                  <p className={`text-lg font-semibold ${selectedOffer.global_postback_enabled ? 'text-emerald-600' : 'text-gray-600'}`}>
+                    {selectedOffer.global_postback_enabled ? 'Enabled' : 'Disabled'}
+                  </p>
                 </div>
               </div>
-            </div>
-            
-            <div className="mt-6">
-              <label className="text-sm font-medium text-gray-500">Global Postback</label>
-              <p className={`text-lg font-semibold ${selectedOffer.globalPostbackEnabled ? 'text-emerald-600' : 'text-gray-600'}`}>
-                {selectedOffer.globalPostbackEnabled ? 'Enabled' : 'Disabled'}
-              </p>
             </div>
             
             <div className="flex space-x-3 mt-6">
@@ -635,14 +600,16 @@ const OffersPage: React.FC = () => {
               >
                 Close
               </button>
-              <button 
-                onClick={() => {
-                  setShowEditModal(true);
-                }}
-                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                Edit Offer
-              </button>
+              {profile?.role === 'admin' && (
+                <button 
+                  onClick={() => {
+                    setShowEditModal(true);
+                  }}
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Edit Offer
+                </button>
+              )}
             </div>
           </div>
         </div>
