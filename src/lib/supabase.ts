@@ -5,35 +5,64 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase environment variables')
+  throw new Error('Missing Supabase environment variables. Please check your .env file.')
 }
 
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   auth: {
     autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: true
+    detectSessionInUrl: true,
+    flowType: 'pkce'
+  },
+  db: {
+    schema: 'public'
+  },
+  global: {
+    headers: {
+      'X-Client-Info': 'affwish-network@1.0.0'
+    }
   }
 })
 
 // Helper function to get current user profile
 export const getCurrentUserProfile = async () => {
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return null
+  try {
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    if (userError) {
+      console.error('Error getting user:', userError)
+      return null
+    }
+    
+    if (!user) return null
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .single()
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', user.id)
+      .single()
 
-  return profile
+    if (profileError) {
+      console.error('Error getting profile:', profileError)
+      return null
+    }
+
+    return profile
+  } catch (error) {
+    console.error('Error in getCurrentUserProfile:', error)
+    return null
+  }
 }
 
 // Helper function to check if user is admin
 export const isAdmin = async () => {
-  const profile = await getCurrentUserProfile()
-  return profile?.role === 'admin'
+  try {
+    const profile = await getCurrentUserProfile()
+    return profile?.role === 'admin'
+  } catch (error) {
+    console.error('Error checking admin status:', error)
+    return false
+  }
 }
 
 // Helper function to generate tracking URLs
@@ -118,5 +147,21 @@ export const cpaNetworkTemplates = {
     name: 'CPALead',
     trackingUrl: 'https://track.affwish.com/click?offer_id={offer_id}&affiliate_id={affiliate_id}&cpl_id={cpl_id}&subid={subid}',
     postbackUrl: 'https://postback.affwish.com/conversion?cpl_id={cpl_id}&payout={payout}&status={status}&offer_id={offer_id}&affiliate_id={affiliate_id}'
+  }
+}
+
+// Test connection function
+export const testSupabaseConnection = async () => {
+  try {
+    const { data, error } = await supabase.from('profiles').select('count').limit(1)
+    if (error) {
+      console.error('Supabase connection test failed:', error)
+      return false
+    }
+    console.log('Supabase connection successful')
+    return true
+  } catch (error) {
+    console.error('Supabase connection test error:', error)
+    return false
   }
 }
