@@ -1,15 +1,22 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User } from '@supabase/supabase-js';
-import { supabase, getCurrentUserProfile } from '../lib/supabase';
-import { Database } from '../types/database';
+import { Database, Auth } from '../lib/database';
 
-type Profile = Database['public']['Tables']['profiles']['Row'];
+interface User {
+  id: string;
+  email: string;
+  full_name: string;
+  role: 'admin' | 'affiliate';
+  status: 'active' | 'pending' | 'suspended' | 'banned';
+  [key: string]: any;
+}
 
 interface AuthContextType {
   user: User | null;
-  profile: Profile | null;
+  profile: User | null;
   loading: boolean;
+  login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  register: (userData: any) => Promise<void>;
   refreshProfile: () => Promise<void>;
   impersonate: (tenantId: string, email: string) => Promise<void>;
   stopImpersonation: () => void;
@@ -28,15 +35,80 @@ export const useAuth = () => {
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [profile, setProfile] = useState<Profile | null>(null);
+  const [profile, setProfile] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [isImpersonating, setIsImpersonating] = useState(false);
-  const [originalUser, setOriginalUser] = useState<{ user: User | null; profile: Profile | null } | null>(null);
+  const [originalUser, setOriginalUser] = useState<{ user: User | null; profile: User | null } | null>(null);
 
   const refreshProfile = async () => {
     if (user) {
-      const userProfile = await getCurrentUserProfile();
-      setProfile(userProfile);
+      try {
+        const userProfile = await Database.queryOne(
+          'SELECT * FROM profiles WHERE id = ?',
+          [user.id]
+        );
+        setProfile(userProfile);
+      } catch (error) {
+        console.error('Failed to refresh profile:', error);
+      }
+    }
+  };
+
+  const login = async (email: string, password: string) => {
+    try {
+      setLoading(true);
+      
+      const result = await Auth.login(email, password);
+      
+      if (!result) {
+        throw new Error('Invalid email or password');
+      }
+
+      const { user: loggedInUser, sessionToken } = result;
+      
+      // Store session token in localStorage
+      localStorage.setItem('sessionToken', sessionToken);
+      
+      setUser(loggedInUser);
+      setProfile(loggedInUser);
+    } catch (error) {
+      console.error('Login error:', error);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const register = async (userData: any) => {
+    try {
+      setLoading(true);
+      
+      const userId = await Auth.register(userData);
+      
+      // Auto-login after registration
+      await login(userData.email, userData.password);
+    } catch (error) {
+      console.error('Registration error:', error);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const logout = async () => {
+    try {
+      const sessionToken = localStorage.getItem('sessionToken');
+      if (sessionToken) {
+        await Auth.deleteSession(sessionToken);
+        localStorage.removeItem('sessionToken');
+      }
+      
+      setUser(null);
+      setProfile(null);
+      setIsImpersonating(false);
+      setOriginalUser(null);
+    } catch (error) {
+      console.error('Logout error:', error);
     }
   };
 
@@ -48,27 +120,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setOriginalUser({ user, profile });
       
       // Get the target user profile
-      const { data: targetProfile, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('email', email)
-        .single();
+      const targetProfile = await Database.queryOne(
+        'SELECT * FROM profiles WHERE email = ?',
+        [email]
+      );
 
-      if (error) throw error;
+      if (!targetProfile) {
+        throw new Error('User not found');
+      }
 
-      // Create a mock user object for impersonation
-      const mockUser: User = {
-        ...user,
-        id: targetProfile.id,
-        email: targetProfile.email,
-        user_metadata: {
-          ...user.user_metadata,
-          full_name: targetProfile.full_name,
-          role: targetProfile.role
-        }
-      };
-
-      setUser(mockUser);
+      setUser(targetProfile);
       setProfile(targetProfile);
       setIsImpersonating(true);
     } catch (error) {
@@ -86,49 +147,40 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
+  // Check for existing session on app load
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        refreshProfile();
+    const checkSession = async () => {
+      try {
+        const sessionToken = localStorage.getItem('sessionToken');
+        
+        if (sessionToken) {
+          const session = await Auth.validateSession(sessionToken);
+          
+          if (session) {
+            setUser(session);
+            setProfile(session);
+          } else {
+            localStorage.removeItem('sessionToken');
+          }
+        }
+      } catch (error) {
+        console.error('Session validation error:', error);
+        localStorage.removeItem('sessionToken');
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
-    });
+    };
 
-    // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      setUser(session?.user ?? null);
-      
-      if (session?.user) {
-        await refreshProfile();
-      } else {
-        setProfile(null);
-        setIsImpersonating(false);
-        setOriginalUser(null);
-      }
-      
-      setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
-  }, [user]);
-
-  const logout = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-    setProfile(null);
-    setIsImpersonating(false);
-    setOriginalUser(null);
-  };
+    checkSession();
+  }, []);
 
   return (
     <AuthContext.Provider value={{ 
       user, 
       profile, 
       loading, 
+      login,
+      register,
       logout,
       refreshProfile,
       impersonate,
