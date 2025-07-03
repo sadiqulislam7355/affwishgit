@@ -1,24 +1,27 @@
-import { supabase } from '../lib/supabase';
+import { Database } from '../lib/database';
 
 export interface ApiResponse<T = any> {
   success: boolean;
   data?: T;
   error?: string;
+  total?: number;
 }
 
 class ApiService {
   // Offer management
   async createOffer(offerData: any): Promise<ApiResponse> {
     try {
-      const { data, error } = await supabase
-        .from('offers')
-        .insert(offerData)
-        .select()
-        .single();
+      const offerId = Database.generateUUID();
+      const data = {
+        id: offerId,
+        ...offerData,
+        created_at: new Date(),
+        updated_at: new Date()
+      };
 
-      if (error) throw error;
+      await Database.insert('offers', data);
 
-      return { success: true, data };
+      return { success: true, data: { id: offerId, ...data } };
     } catch (error) {
       console.error('Failed to create offer:', error);
       return { 
@@ -30,14 +33,16 @@ class ApiService {
 
   async updateOffer(offerId: string, offerData: any): Promise<ApiResponse> {
     try {
-      const { data, error } = await supabase
-        .from('offers')
-        .update(offerData)
-        .eq('id', offerId)
-        .select()
-        .single();
+      const data = {
+        ...offerData,
+        updated_at: new Date()
+      };
 
-      if (error) throw error;
+      const affectedRows = await Database.update('offers', data, 'id = ?', [offerId]);
+
+      if (affectedRows === 0) {
+        return { success: false, error: 'Offer not found' };
+      }
 
       return { success: true, data };
     } catch (error) {
@@ -51,12 +56,11 @@ class ApiService {
 
   async deleteOffer(offerId: string): Promise<ApiResponse> {
     try {
-      const { error } = await supabase
-        .from('offers')
-        .delete()
-        .eq('id', offerId);
+      const affectedRows = await Database.delete('offers', 'id = ?', [offerId]);
 
-      if (error) throw error;
+      if (affectedRows === 0) {
+        return { success: false, error: 'Offer not found' };
+      }
 
       return { success: true };
     } catch (error) {
@@ -68,16 +72,19 @@ class ApiService {
     }
   }
 
-  async getOffers(): Promise<ApiResponse> {
+  async getOffers(page: number = 1, limit: number = 50): Promise<ApiResponse> {
     try {
-      const { data, error } = await supabase
-        .from('offers')
-        .select('*')
-        .order('created_at', { ascending: false });
+      const offset = (page - 1) * limit;
+      
+      const offers = await Database.query(
+        'SELECT * FROM offers ORDER BY created_at DESC LIMIT ? OFFSET ?',
+        [limit, offset]
+      );
 
-      if (error) throw error;
+      const totalResult = await Database.queryOne('SELECT COUNT(*) as total FROM offers');
+      const total = totalResult.total;
 
-      return { success: true, data };
+      return { success: true, data: offers, total };
     } catch (error) {
       console.error('Failed to fetch offers:', error);
       return { 
@@ -90,9 +97,17 @@ class ApiService {
   // Affiliate management
   async createAffiliate(affiliateData: any): Promise<ApiResponse> {
     try {
-      // This would typically be handled by the AddAffiliateModal
-      // which creates the user account and profile
-      return { success: true, data: affiliateData };
+      const affiliateId = Database.generateUUID();
+      const data = {
+        id: affiliateId,
+        ...affiliateData,
+        created_at: new Date(),
+        updated_at: new Date()
+      };
+
+      await Database.insert('affiliates', data);
+
+      return { success: true, data: { id: affiliateId, ...data } };
     } catch (error) {
       console.error('Failed to create affiliate:', error);
       return { 
@@ -102,20 +117,25 @@ class ApiService {
     }
   }
 
-  async getAffiliates(): Promise<ApiResponse> {
+  async getAffiliates(page: number = 1, limit: number = 50): Promise<ApiResponse> {
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select(`
-          *,
-          affiliates (*)
-        `)
-        .eq('role', 'affiliate')
-        .order('created_at', { ascending: false });
+      const offset = (page - 1) * limit;
+      
+      const affiliates = await Database.query(`
+        SELECT p.*, a.* FROM profiles p
+        LEFT JOIN affiliates a ON p.id = a.user_id
+        WHERE p.role = 'affiliate'
+        ORDER BY p.created_at DESC
+        LIMIT ? OFFSET ?
+      `, [limit, offset]);
 
-      if (error) throw error;
+      const totalResult = await Database.queryOne(`
+        SELECT COUNT(*) as total FROM profiles 
+        WHERE role = 'affiliate'
+      `);
+      const total = totalResult.total;
 
-      return { success: true, data };
+      return { success: true, data: affiliates, total };
     } catch (error) {
       console.error('Failed to fetch affiliates:', error);
       return { 
@@ -125,58 +145,19 @@ class ApiService {
     }
   }
 
-  // Postback management
-  async createPostback(postbackData: any): Promise<ApiResponse> {
-    try {
-      const { data, error } = await supabase
-        .from('postbacks')
-        .insert(postbackData)
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      return { success: true, data };
-    } catch (error) {
-      console.error('Failed to create postback:', error);
-      return { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Failed to create postback' 
-      };
-    }
-  }
-
-  async getPostbacks(): Promise<ApiResponse> {
-    try {
-      const { data, error } = await supabase
-        .from('postbacks')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-
-      return { success: true, data };
-    } catch (error) {
-      console.error('Failed to fetch postbacks:', error);
-      return { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Failed to fetch postbacks' 
-      };
-    }
-  }
-
   // Click tracking
   async trackClick(clickData: any): Promise<ApiResponse> {
     try {
-      const { data, error } = await supabase
-        .from('clicks')
-        .insert(clickData)
-        .select()
-        .single();
+      const clickId = Database.generateUUID();
+      const data = {
+        id: clickId,
+        ...clickData,
+        created_at: new Date()
+      };
 
-      if (error) throw error;
+      await Database.insert('clicks', data);
 
-      return { success: true, data };
+      return { success: true, data: { id: clickId, ...data } };
     } catch (error) {
       console.error('Failed to track click:', error);
       return { 
@@ -189,15 +170,22 @@ class ApiService {
   // Conversion tracking
   async trackConversion(conversionData: any): Promise<ApiResponse> {
     try {
-      const { data, error } = await supabase
-        .from('conversions')
-        .insert(conversionData)
-        .select()
-        .single();
+      const conversionId = Database.generateUUID();
+      const data = {
+        id: conversionId,
+        ...conversionData,
+        created_at: new Date(),
+        updated_at: new Date()
+      };
 
-      if (error) throw error;
+      await Database.insert('conversions', data);
 
-      return { success: true, data };
+      // Update click as converted
+      if (data.click_id) {
+        await Database.update('clicks', { is_converted: true }, 'id = ?', [data.click_id]);
+      }
+
+      return { success: true, data: { id: conversionId, ...data } };
     } catch (error) {
       console.error('Failed to track conversion:', error);
       return { 
@@ -210,15 +198,12 @@ class ApiService {
   // Settings management
   async getSetting(key: string): Promise<ApiResponse> {
     try {
-      const { data, error } = await supabase
-        .from('settings')
-        .select('value')
-        .eq('key', key)
-        .single();
+      const setting = await Database.queryOne(
+        'SELECT setting_value FROM settings WHERE setting_key = ?',
+        [key]
+      );
 
-      if (error) throw error;
-
-      return { success: true, data: data?.value };
+      return { success: true, data: setting?.setting_value };
     } catch (error) {
       console.error('Failed to get setting:', error);
       return { 
@@ -230,15 +215,26 @@ class ApiService {
 
   async updateSetting(key: string, value: any): Promise<ApiResponse> {
     try {
-      const { data, error } = await supabase
-        .from('settings')
-        .upsert({ key, value })
-        .select()
-        .single();
+      // Try to update first
+      const affectedRows = await Database.update(
+        'settings', 
+        { setting_value: JSON.stringify(value), updated_at: new Date() }, 
+        'setting_key = ?', 
+        [key]
+      );
 
-      if (error) throw error;
+      // If no rows affected, insert new setting
+      if (affectedRows === 0) {
+        await Database.insert('settings', {
+          id: Database.generateUUID(),
+          setting_key: key,
+          setting_value: JSON.stringify(value),
+          created_at: new Date(),
+          updated_at: new Date()
+        });
+      }
 
-      return { success: true, data };
+      return { success: true, data: { key, value } };
     } catch (error) {
       console.error('Failed to update setting:', error);
       return { 
@@ -250,14 +246,11 @@ class ApiService {
 
   async getSettings(): Promise<ApiResponse> {
     try {
-      const { data, error } = await supabase
-        .from('settings')
-        .select('*')
-        .order('category', { ascending: true });
+      const settings = await Database.query(
+        'SELECT * FROM settings ORDER BY category, setting_key'
+      );
 
-      if (error) throw error;
-
-      return { success: true, data };
+      return { success: true, data: settings };
     } catch (error) {
       console.error('Failed to fetch settings:', error);
       return { 
@@ -267,91 +260,29 @@ class ApiService {
     }
   }
 
-  // Fraud detection
-  async checkFraud(ipAddress: string): Promise<ApiResponse> {
-    try {
-      // Get IPQualityScore API key from settings
-      const apiKeyResponse = await this.getSetting('ipqualityscore_api_key');
-      if (!apiKeyResponse.success || !apiKeyResponse.data) {
-        return { success: false, error: 'IPQualityScore API key not configured' };
-      }
-
-      const apiKey = apiKeyResponse.data;
-      const url = `https://ipqualityscore.com/api/json/ip/${apiKey}/${ipAddress}`;
-
-      const response = await fetch(url);
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Fraud check failed');
-      }
-
-      // Log the fraud check
-      await supabase
-        .from('fraud_logs')
-        .insert({
-          ip_address: ipAddress,
-          fraud_score: data.fraud_score,
-          risk_level: data.fraud_score > 75 ? 'high' : data.fraud_score > 50 ? 'medium' : 'low',
-          reasons: data.recent_abuse ? ['recent_abuse'] : [],
-          blocked: data.fraud_score > 75,
-          provider: 'ipqualityscore',
-          raw_response: data
-        });
-
-      return { success: true, data };
-    } catch (error) {
-      console.error('Fraud check failed:', error);
-      return { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Fraud check failed' 
-      };
-    }
-  }
-
   // Analytics
   async getAnalytics(dateRange: string = '7d'): Promise<ApiResponse> {
     try {
-      const { data: user } = await supabase.auth.getUser();
-      if (!user.user) {
-        return { success: false, error: 'Not authenticated' };
-      }
-
-      // Calculate date range
-      const endDate = new Date();
-      const startDate = new Date();
-      
+      let days = 7;
       switch (dateRange) {
-        case '7d':
-          startDate.setDate(endDate.getDate() - 7);
-          break;
-        case '30d':
-          startDate.setDate(endDate.getDate() - 30);
-          break;
-        case '90d':
-          startDate.setDate(endDate.getDate() - 90);
-          break;
-        default:
-          startDate.setDate(endDate.getDate() - 7);
+        case '30d': days = 30; break;
+        case '90d': days = 90; break;
+        default: days = 7;
       }
 
       // Get clicks data
-      const { data: clicks, error: clicksError } = await supabase
-        .from('clicks')
-        .select('*')
-        .gte('created_at', startDate.toISOString())
-        .lte('created_at', endDate.toISOString());
-
-      if (clicksError) throw clicksError;
+      const clicks = await Database.query(`
+        SELECT * FROM clicks 
+        WHERE created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
+        ORDER BY created_at DESC
+      `, [days]);
 
       // Get conversions data
-      const { data: conversions, error: conversionsError } = await supabase
-        .from('conversions')
-        .select('*')
-        .gte('created_at', startDate.toISOString())
-        .lte('created_at', endDate.toISOString());
-
-      if (conversionsError) throw conversionsError;
+      const conversions = await Database.query(`
+        SELECT * FROM conversions 
+        WHERE created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
+        ORDER BY created_at DESC
+      `, [days]);
 
       return { 
         success: true, 
@@ -365,6 +296,48 @@ class ApiService {
       return { 
         success: false, 
         error: error instanceof Error ? error.message : 'Failed to fetch analytics' 
+      };
+    }
+  }
+
+  // Fraud detection
+  async checkFraud(ipAddress: string): Promise<ApiResponse> {
+    try {
+      // Get IPQualityScore API key from settings
+      const apiKeyResponse = await this.getSetting('ipqualityscore_api_key');
+      if (!apiKeyResponse.success || !apiKeyResponse.data) {
+        return { success: false, error: 'IPQualityScore API key not configured' };
+      }
+
+      const apiKey = JSON.parse(apiKeyResponse.data);
+      const url = `https://ipqualityscore.com/api/json/ip/${apiKey}/${ipAddress}`;
+
+      const response = await fetch(url);
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Fraud check failed');
+      }
+
+      // Log the fraud check
+      await Database.insert('fraud_logs', {
+        id: Database.generateUUID(),
+        ip_address: ipAddress,
+        fraud_score: data.fraud_score,
+        risk_level: data.fraud_score > 75 ? 'high' : data.fraud_score > 50 ? 'medium' : 'low',
+        reasons: JSON.stringify(data.recent_abuse ? ['recent_abuse'] : []),
+        blocked: data.fraud_score > 75,
+        provider: 'ipqualityscore',
+        raw_response: JSON.stringify(data),
+        created_at: new Date()
+      });
+
+      return { success: true, data };
+    } catch (error) {
+      console.error('Fraud check failed:', error);
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Fraud check failed' 
       };
     }
   }
