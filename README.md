@@ -1,6 +1,6 @@
 # AFFWISH - Premium CPA Network Platform
 
-A production-ready CPA (Cost Per Action) affiliate network platform built with React, TypeScript, and Supabase.
+A production-ready CPA (Cost Per Action) affiliate network platform built with React, TypeScript, and MySQL.
 
 ## 🚀 **Production Ready Features**
 
@@ -8,7 +8,7 @@ A production-ready CPA (Cost Per Action) affiliate network platform built with R
 - **Admin Dashboard**: Full network administration
 - **Affiliate Portal**: Performance tracking and link management
 - **Role-based Access Control**: Secure permissions system
-- **User Impersonation**: Admin can impersonate affiliates for support
+- **MySQL Backend**: Compatible with cPanel hosting
 
 ### ✅ **Offer Management**
 - **Dynamic Offer Creation**: Full CRUD operations
@@ -57,7 +57,8 @@ Password: Affiliate123!@#
 ## 🛠 **Technical Stack**
 
 - **Frontend**: React 18 + TypeScript + Tailwind CSS
-- **Backend**: Supabase (PostgreSQL + Auth + Real-time)
+- **Backend**: MySQL Database (cPanel compatible)
+- **Authentication**: Custom JWT-based system
 - **Charts**: Recharts for analytics visualization
 - **Icons**: Lucide React
 - **Routing**: React Router DOM
@@ -67,28 +68,36 @@ Password: Affiliate123!@#
 ## 📊 **Database Schema**
 
 ### **Core Tables**
+- `users` - User authentication and credentials
 - `profiles` - User profiles with role-based access
 - `offers` - CPA offers with tracking configuration
 - `affiliates` - Affiliate management and statistics
 - `clicks` - Click tracking and analytics
 - `conversions` - Conversion tracking and reporting
 - `payments` - Payment history and management
-- `postbacks` - Postback configurations
-- `fraud_logs` - Fraud detection logs
 - `settings` - Network-wide configuration
 
 ### **Security Features**
-- **Row Level Security (RLS)**: Database-level access control
-- **Role-based Policies**: Admin vs Affiliate data separation
-- **Secure Authentication**: Supabase Auth with email verification
-- **API Protection**: Authenticated endpoints only
+- **Password Hashing**: Bcrypt encryption
+- **Session Management**: JWT token-based authentication
+- **Role-based Access**: Admin vs Affiliate data separation
+- **SQL Injection Protection**: Parameterized queries
+- **XSS Protection**: Input sanitization
 
 ## 🔧 **Configuration**
 
 ### **Environment Variables**
 ```env
-VITE_SUPABASE_URL=your_supabase_url
-VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+# Database Configuration (MySQL/cPanel)
+DB_HOST=localhost
+DB_PORT=3306
+DB_USER=your_cpanel_username_dbuser
+DB_PASSWORD=your_database_password
+DB_NAME=your_cpanel_username_affwish
+
+# Application Settings
+APP_URL=https://yourdomain.com
+JWT_SECRET=your_jwt_secret_key_here
 ```
 
 ### **Network Settings**
@@ -108,10 +117,9 @@ cd affwish-cpa-platform
 npm install
 ```
 
-2. **Configure Supabase**
-- Create a new Supabase project
-- Run the migration files in `/supabase/migrations/`
-- Update environment variables
+2. **Configure Database**
+- Import `database/mysql/complete_schema.sql` to your MySQL database
+- Update database credentials in your environment
 
 3. **Start Development**
 ```bash
@@ -143,11 +151,11 @@ npm run dev
 ## 🔒 **Security & Compliance**
 
 - **Data Protection**: GDPR-compliant data handling
-- **Secure Authentication**: Multi-factor authentication support
+- **Secure Authentication**: JWT-based authentication system
 - **Fraud Prevention**: Real-time IP and device fingerprinting
 - **Audit Logging**: Complete activity tracking
 - **API Security**: Rate limiting and authentication
-- **Database Security**: Encrypted data storage
+- **Database Security**: Encrypted password storage
 
 ## 📞 **Support & Documentation**
 
@@ -160,12 +168,29 @@ npm run dev
 ## 🎯 **Production Deployment**
 
 The platform is production-ready with:
-- **Scalable Architecture**: Handles high-volume traffic
+- **cPanel Compatible**: Works with shared hosting
+- **MySQL Database**: Standard database support
 - **Real-time Updates**: Live data synchronization
 - **Mobile Responsive**: Works on all devices
 - **Performance Optimized**: Fast loading and smooth UX
 - **Error Handling**: Comprehensive error management
 - **Monitoring Ready**: Built-in analytics and logging
+
+## 📁 **File Structure**
+
+```
+affwish-cpa-platform/
+├── src/
+│   ├── components/          # React components
+│   ├── contexts/           # React contexts (Auth, etc.)
+│   ├── services/           # API services
+│   ├── lib/               # Utilities and helpers
+│   └── types/             # TypeScript type definitions
+├── database/
+│   └── mysql/             # MySQL schema and data
+├── docs/                  # Documentation
+└── public/               # Static assets
+```
 
 ---
 

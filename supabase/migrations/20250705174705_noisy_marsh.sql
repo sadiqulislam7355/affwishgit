@@ -1,4 +1,4 @@
--- AFFWISH CPA Network - MySQL Schema
+-- AFFWISH CPA Network - Complete MySQL Schema
 -- Compatible with cPanel MySQL databases
 
 -- Create database (uncomment if creating new database)
@@ -120,27 +120,6 @@ CREATE TABLE IF NOT EXISTS affiliates (
   INDEX idx_manager_id (manager_id)
 ) ENGINE=InnoDB;
 
--- Postbacks table
-CREATE TABLE IF NOT EXISTS postbacks (
-  id CHAR(36) PRIMARY KEY DEFAULT (UUID()),
-  name VARCHAR(255) NOT NULL,
-  url TEXT NOT NULL,
-  method VARCHAR(10) DEFAULT 'GET',
-  parameters JSON,
-  headers JSON,
-  status VARCHAR(20) DEFAULT 'active',
-  offer_id CHAR(36),
-  created_by CHAR(36),
-  fire_count INT DEFAULT 0,
-  last_fired TIMESTAMP,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  FOREIGN KEY (offer_id) REFERENCES offers(id) ON DELETE CASCADE,
-  FOREIGN KEY (created_by) REFERENCES profiles(id),
-  INDEX idx_offer_id (offer_id),
-  INDEX idx_status (status)
-) ENGINE=InnoDB;
-
 -- Clicks table
 CREATE TABLE IF NOT EXISTS clicks (
   id CHAR(36) PRIMARY KEY DEFAULT (UUID()),
@@ -234,24 +213,6 @@ CREATE TABLE IF NOT EXISTS payments (
   INDEX idx_created_at (created_at)
 ) ENGINE=InnoDB;
 
--- Fraud logs table
-CREATE TABLE IF NOT EXISTS fraud_logs (
-  id CHAR(36) PRIMARY KEY DEFAULT (UUID()),
-  click_id CHAR(36),
-  ip_address VARCHAR(45) NOT NULL,
-  fraud_score INT,
-  risk_level VARCHAR(20),
-  reasons JSON,
-  blocked BOOLEAN DEFAULT FALSE,
-  provider VARCHAR(50) DEFAULT 'ipqualityscore',
-  raw_response JSON,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (click_id) REFERENCES clicks(id),
-  INDEX idx_ip_address (ip_address),
-  INDEX idx_blocked (blocked),
-  INDEX idx_created_at (created_at)
-) ENGINE=InnoDB;
-
 -- Settings table
 CREATE TABLE IF NOT EXISTS settings (
   id CHAR(36) PRIMARY KEY DEFAULT (UUID()),
@@ -281,3 +242,128 @@ CREATE TABLE IF NOT EXISTS user_sessions (
   INDEX idx_user_id (user_id),
   INDEX idx_expires_at (expires_at)
 ) ENGINE=InnoDB;
+
+-- Insert demo users
+INSERT INTO users (id, email, password_hash, email_verified, created_at, updated_at) VALUES
+('00000000-0000-0000-0000-000000000001', 'admin@affwish.com', '$2b$12$LQv3c1yqBwEHFl5aBLloe.Az4oeLjKHm9gOL9YrGrcLmy8ww6tXdO', TRUE, NOW(), NOW()),
+('00000000-0000-0000-0000-000000000002', 'affiliate@affwish.com', '$2b$12$LQv3c1yqBwEHFl5aBLloe.Az4oeLjKHm9gOL9YrGrcLmy8ww6tXdO', TRUE, NOW(), NOW())
+ON DUPLICATE KEY UPDATE email = VALUES(email);
+
+-- Insert demo profiles
+INSERT INTO profiles (
+  id, email, full_name, role, status, company, website, phone, country, 
+  address, city, zip_code, timezone, payment_method, payment_details, 
+  traffic_sources, experience_level, bio, email_verified, created_at, updated_at
+) VALUES 
+(
+  '00000000-0000-0000-0000-000000000001',
+  'admin@affwish.com',
+  'AFFWISH Administrator',
+  'admin',
+  'active',
+  'AFFWISH Network',
+  'https://affwish.com',
+  '+1-555-0100',
+  'United States',
+  '123 Network Street',
+  'San Francisco',
+  '94105',
+  'America/Los_Angeles',
+  'bank',
+  '{"bank_name": "Chase Bank", "account_number": "****1234"}',
+  '["Email Marketing", "PPC", "Social Media"]',
+  'expert',
+  'Network administrator with 10+ years experience in affiliate marketing.',
+  TRUE,
+  NOW(),
+  NOW()
+),
+(
+  '00000000-0000-0000-0000-000000000002',
+  'affiliate@affwish.com',
+  'Top Affiliate Marketer',
+  'affiliate',
+  'active',
+  'Marketing Pro LLC',
+  'https://marketingpro.com',
+  '+1-555-0200',
+  'United States',
+  '456 Marketing Avenue',
+  'New York',
+  '10001',
+  'America/New_York',
+  'paypal',
+  '{"paypal_email": "affiliate@affwish.com"}',
+  '["Social Media", "Email Marketing", "SEO", "YouTube"]',
+  'advanced',
+  'Experienced affiliate marketer specializing in performance marketing.',
+  TRUE,
+  NOW(),
+  NOW()
+)
+ON DUPLICATE KEY UPDATE 
+  full_name = VALUES(full_name),
+  role = VALUES(role),
+  status = VALUES(status);
+
+-- Insert sample offers
+INSERT INTO offers (
+  id, name, description, advertiser, advertiser_id, payout, payout_type, 
+  category, status, countries, devices, traffic_sources, offer_url, 
+  preview_url, tracking_url, global_postback_enabled, created_by, created_at, updated_at
+) VALUES 
+(
+  '00000000-0000-0000-0000-000000000010',
+  'Premium Dating App - iOS/Android',
+  'High-converting dating app with premium features.',
+  'Dating Corp International',
+  'DC_001',
+  25.00,
+  'CPA',
+  'Dating',
+  'active',
+  '["US", "CA", "UK", "AU", "DE"]',
+  '["Mobile", "Desktop"]',
+  '["Social Media", "Email Marketing", "Native Ads"]',
+  'https://dating-app.example.com/signup',
+  'https://dating-app.example.com/preview',
+  'https://track.affwish.com/click?offer_id={offer_id}&affiliate_id={affiliate_id}&click_id={click_id}',
+  TRUE,
+  '00000000-0000-0000-0000-000000000001',
+  NOW(),
+  NOW()
+),
+(
+  '00000000-0000-0000-0000-000000000011',
+  'Crypto Trading Platform',
+  'Leading cryptocurrency trading platform with advanced features.',
+  'CryptoTrade Exchange',
+  'CTE_002',
+  40.00,
+  'CPA',
+  'Finance',
+  'active',
+  '["US", "CA", "UK", "AU", "DE"]',
+  '["Desktop", "Mobile"]',
+  '["PPC", "Social Media", "Email Marketing"]',
+  'https://crypto-exchange.example.com/register',
+  'https://crypto-exchange.example.com/preview',
+  'https://track.affwish.com/click?offer_id={offer_id}&affiliate_id={affiliate_id}&click_id={click_id}',
+  TRUE,
+  '00000000-0000-0000-0000-000000000001',
+  NOW(),
+  NOW()
+)
+ON DUPLICATE KEY UPDATE 
+  name = VALUES(name),
+  status = VALUES(status);
+
+-- Insert default settings
+INSERT INTO settings (setting_key, setting_value, description, category, created_by) VALUES
+('network_name', '"AFFWISH - Premium CPA Network"', 'Network display name', 'general', '00000000-0000-0000-0000-000000000001'),
+('network_description', '"The leading CPA affiliate network"', 'Network description', 'general', '00000000-0000-0000-0000-000000000001'),
+('default_currency', '"USD"', 'Default currency', 'general', '00000000-0000-0000-0000-000000000001'),
+('tracking_domain', '"track.affwish.com"', 'Primary tracking domain', 'tracking', '00000000-0000-0000-0000-000000000001')
+ON DUPLICATE KEY UPDATE 
+  setting_value = VALUES(setting_value),
+  updated_at = NOW();
