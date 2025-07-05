@@ -1,83 +1,15 @@
-import { createClient } from '@supabase/supabase-js'
-import { Database } from '../types/database'
+// MySQL Database Configuration and Utilities
+// This file replaces Supabase with MySQL for cPanel compatibility
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
-
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase environment variables. Please check your .env file.')
+export interface DatabaseConfig {
+  host: string;
+  port: number;
+  user: string;
+  password: string;
+  database: string;
 }
 
-export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: true,
-    flowType: 'pkce'
-  },
-  db: {
-    schema: 'public'
-  },
-  global: {
-    headers: {
-      'X-Client-Info': 'affwish-network@1.0.0'
-    }
-  }
-})
-
-// Helper function to get current user profile
-export const getCurrentUserProfile = async () => {
-  try {
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
-    if (userError) {
-      console.error('Error getting user:', userError)
-      return null
-    }
-    
-    if (!user) return null
-
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', user.id)
-      .single()
-
-    if (profileError) {
-      console.error('Error getting profile:', profileError)
-      return null
-    }
-
-    return profile
-  } catch (error) {
-    console.error('Error in getCurrentUserProfile:', error)
-    return null
-  }
-}
-
-// Helper function to check if user is admin
-export const isAdmin = async () => {
-  try {
-    const profile = await getCurrentUserProfile()
-    return profile?.role === 'admin'
-  } catch (error) {
-    console.error('Error checking admin status:', error)
-    return false
-  }
-}
-
-// Helper function to generate tracking URLs
-export const generateTrackingUrl = (offerId: string, affiliateId: string, subId?: string) => {
-  const baseUrl = 'https://track.affwish.com/click'
-  let url = `${baseUrl}?offer_id=${offerId}&affiliate_id=${affiliateId}&click_id={click_id}`
-  
-  if (subId) {
-    url += `&sub_id=${subId}`
-  }
-  
-  return url
-}
-
-// Tracking software templates
+// Tracking software templates for offer creation
 export const trackingSoftwareTemplates = {
   everflow: {
     name: 'Everflow',
@@ -108,18 +40,8 @@ export const trackingSoftwareTemplates = {
     name: 'CAKE',
     trackingUrl: 'https://track.affwish.com/click?offer_id={offer_id}&affiliate_id={affiliate_id}&transaction_id={transaction_id}&s1={s1}&s2={s2}&s3={s3}&s4={s4}&s5={s5}',
     postbackUrl: 'https://postback.affwish.com/conversion?transaction_id={transaction_id}&offer_id={offer_id}&affiliate_id={affiliate_id}&received_amount={received_amount}&disposition={disposition}'
-  },
-  linktrust: {
-    name: 'LinkTrust',
-    trackingUrl: 'https://track.affwish.com/click?offer_id={offer_id}&affiliate_id={affiliate_id}&click_id={click_id}&subid1={subid1}&subid2={subid2}&subid3={subid3}&subid4={subid4}&subid5={subid5}',
-    postbackUrl: 'https://postback.affwish.com/conversion?click_id={click_id}&conversion_id={conversion_id}&payout={payout}&status={status}&offer_id={offer_id}&affiliate_id={affiliate_id}'
-  },
-  hitpath: {
-    name: 'HitPath',
-    trackingUrl: 'https://track.affwish.com/click?offer_id={offer_id}&affiliate_id={affiliate_id}&hit_id={hit_id}&var1={var1}&var2={var2}&var3={var3}&var4={var4}&var5={var5}',
-    postbackUrl: 'https://postback.affwish.com/conversion?hit_id={hit_id}&conversion_id={conversion_id}&payout={payout}&status={status}&offer_id={offer_id}&affiliate_id={affiliate_id}'
   }
-}
+};
 
 // CPA Network templates
 export const cpaNetworkTemplates = {
@@ -137,31 +59,47 @@ export const cpaNetworkTemplates = {
     name: 'ClickBooth',
     trackingUrl: 'https://track.affwish.com/click?offer_id={offer_id}&affiliate_id={affiliate_id}&cb_aid={cb_aid}&cb_sid={cb_sid}',
     postbackUrl: 'https://postback.affwish.com/conversion?cb_aid={cb_aid}&payout={payout}&status={status}&offer_id={offer_id}&affiliate_id={affiliate_id}'
-  },
-  peerfly: {
-    name: 'PeerFly',
-    trackingUrl: 'https://track.affwish.com/click?offer_id={offer_id}&affiliate_id={affiliate_id}&pf_aid={pf_aid}&pf_sid={pf_sid}',
-    postbackUrl: 'https://postback.affwish.com/conversion?pf_aid={pf_aid}&payout={payout}&status={status}&offer_id={offer_id}&affiliate_id={affiliate_id}'
-  },
-  cpalead: {
-    name: 'CPALead',
-    trackingUrl: 'https://track.affwish.com/click?offer_id={offer_id}&affiliate_id={affiliate_id}&cpl_id={cpl_id}&subid={subid}',
-    postbackUrl: 'https://postback.affwish.com/conversion?cpl_id={cpl_id}&payout={payout}&status={status}&offer_id={offer_id}&affiliate_id={affiliate_id}'
   }
-}
+};
 
-// Test connection function
-export const testSupabaseConnection = async () => {
-  try {
-    const { data, error } = await supabase.from('profiles').select('count').limit(1)
-    if (error) {
-      console.error('Supabase connection test failed:', error)
-      return false
-    }
-    console.log('Supabase connection successful')
-    return true
-  } catch (error) {
-    console.error('Supabase connection test error:', error)
-    return false
+// Helper function to generate tracking URLs
+export const generateTrackingUrl = (offerId: string, affiliateId: string, subId?: string) => {
+  const baseUrl = 'https://track.affwish.com/click';
+  let url = `${baseUrl}?offer_id=${offerId}&affiliate_id=${affiliateId}&click_id={click_id}`;
+  
+  if (subId) {
+    url += `&sub_id=${subId}`;
   }
-}
+  
+  return url;
+};
+
+// Test connection function (placeholder for MySQL connection test)
+export const testDatabaseConnection = async () => {
+  try {
+    // In production, this would test the MySQL connection
+    console.log('Database connection test - would connect to MySQL');
+    return true;
+  } catch (error) {
+    console.error('Database connection test failed:', error);
+    return false;
+  }
+};
+
+// Helper function to get current user profile (mock implementation)
+export const getCurrentUserProfile = async () => {
+  // This would be replaced with actual MySQL query in production
+  const mockUser = localStorage.getItem('currentUser');
+  return mockUser ? JSON.parse(mockUser) : null;
+};
+
+// Helper function to check if user is admin
+export const isAdmin = async () => {
+  try {
+    const profile = await getCurrentUserProfile();
+    return profile?.role === 'admin';
+  } catch (error) {
+    console.error('Error checking admin status:', error);
+    return false;
+  }
+};

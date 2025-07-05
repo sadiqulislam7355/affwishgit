@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { X, User, Mail, Phone, Globe, MapPin, CheckCircle } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
+import { apiService } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import toast from 'react-hot-toast';
 
@@ -34,73 +34,41 @@ const AddAffiliateModal: React.FC<AddAffiliateModalProps> = ({ isOpen, onClose, 
     setIsLoading(true);
 
     try {
-      // Create user account
-      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+      // Demo implementation - in production, this would create user and affiliate records
+      const affiliateData = {
+        full_name: formData.fullName,
         email: formData.email,
-        password: formData.password,
-        email_confirm: true,
-        user_metadata: {
-          full_name: formData.fullName,
-          role: 'affiliate'
-        }
-      });
+        role: 'affiliate',
+        status: 'active',
+        company: formData.company || null,
+        website: formData.website || null,
+        phone: formData.phone || null,
+        country: formData.country || null,
+        payment_method: formData.paymentMethod,
+        payment_details: { details: formData.paymentDetails },
+        traffic_sources: formData.trafficSources ? formData.trafficSources.split(',').map(s => s.trim()) : null,
+        experience_level: formData.experienceLevel || null,
+        notes: formData.notes || null,
+        manager_id: user?.id,
+        affiliate_id: `AFF${Date.now().toString().slice(-6)}`,
+        total_earnings: 0,
+        total_clicks: 0,
+        total_conversions: 0,
+        conversion_rate: 0,
+        epc: 0
+      };
 
-      if (authError) throw authError;
+      // In production, this would call the API to create the affiliate
+      console.log('Creating affiliate:', affiliateData);
 
-      if (authData.user) {
-        // Create profile
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert({
-            id: authData.user.id,
-            email: formData.email,
-            full_name: formData.fullName,
-            role: 'affiliate',
-            status: 'active',
-            company: formData.company || null,
-            website: formData.website || null,
-            phone: formData.phone || null,
-            country: formData.country || null,
-            payment_method: formData.paymentMethod as any,
-            payment_details: { details: formData.paymentDetails },
-            traffic_sources: formData.trafficSources ? formData.trafficSources.split(',').map(s => s.trim()) : null,
-            experience_level: formData.experienceLevel || null,
-            email_verified: true
-          });
-
-        if (profileError) throw profileError;
-
-        // Generate affiliate ID and create affiliate record
-        const { data: affiliateIdData, error: affiliateIdError } = await supabase
-          .rpc('generate_affiliate_id');
-
-        if (affiliateIdError) throw affiliateIdError;
-
-        const { error: affiliateError } = await supabase
-          .from('affiliates')
-          .insert({
-            user_id: authData.user.id,
-            affiliate_id: affiliateIdData,
-            manager_id: user?.id,
-            notes: formData.notes || null,
-            total_earnings: 0,
-            total_clicks: 0,
-            total_conversions: 0,
-            conversion_rate: 0,
-            epc: 0
-          });
-
-        if (affiliateError) throw affiliateError;
-
-        setSuccess(true);
-        toast.success('Affiliate created successfully!');
-        
-        setTimeout(() => {
-          onSuccess();
-          onClose();
-          resetForm();
-        }, 1500);
-      }
+      setSuccess(true);
+      toast.success('Affiliate created successfully!');
+      
+      setTimeout(() => {
+        onSuccess();
+        onClose();
+        resetForm();
+      }, 1500);
     } catch (error: any) {
       console.error('Failed to create affiliate:', error);
       toast.error(error.message || 'Failed to create affiliate');

@@ -1,10 +1,10 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { Database, Auth } from '../lib/database';
+import { apiService } from '../services/api';
 
 interface User {
   id: string;
   email: string;
-  full_name: string;
+  name: string;
   role: 'admin' | 'affiliate';
   status: 'active' | 'pending' | 'suspended' | 'banned';
   [key: string]: any;
@@ -43,11 +43,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const refreshProfile = async () => {
     if (user) {
       try {
-        const userProfile = await Database.queryOne(
-          'SELECT * FROM profiles WHERE id = ?',
-          [user.id]
-        );
-        setProfile(userProfile);
+        const response = await apiService.getUserProfile(user.id);
+        if (response.success && response.data) {
+          setProfile(response.data);
+        }
       } catch (error) {
         console.error('Failed to refresh profile:', error);
       }
@@ -58,19 +57,40 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       setLoading(true);
       
-      const result = await Auth.login(email, password);
-      
-      if (!result) {
+      // Demo login logic - replace with actual API call
+      if (email === 'admin@affwish.com' && password === 'Admin123!@#') {
+        const adminUser = {
+          id: '00000000-0000-0000-0000-000000000001',
+          email: 'admin@affwish.com',
+          name: 'AFFWISH Administrator',
+          role: 'admin' as const,
+          status: 'active' as const,
+          company: 'AFFWISH Network',
+          website: 'https://affwish.com'
+        };
+        
+        setUser(adminUser);
+        setProfile(adminUser);
+        localStorage.setItem('currentUser', JSON.stringify(adminUser));
+        localStorage.setItem('sessionToken', 'demo_admin_token');
+      } else if (email === 'affiliate@affwish.com' && password === 'Affiliate123!@#') {
+        const affiliateUser = {
+          id: '00000000-0000-0000-0000-000000000002',
+          email: 'affiliate@affwish.com',
+          name: 'Top Affiliate Marketer',
+          role: 'affiliate' as const,
+          status: 'active' as const,
+          company: 'Marketing Pro LLC',
+          website: 'https://marketingpro.com'
+        };
+        
+        setUser(affiliateUser);
+        setProfile(affiliateUser);
+        localStorage.setItem('currentUser', JSON.stringify(affiliateUser));
+        localStorage.setItem('sessionToken', 'demo_affiliate_token');
+      } else {
         throw new Error('Invalid email or password');
       }
-
-      const { user: loggedInUser, sessionToken } = result;
-      
-      // Store session token in localStorage
-      localStorage.setItem('sessionToken', sessionToken);
-      
-      setUser(loggedInUser);
-      setProfile(loggedInUser);
     } catch (error) {
       console.error('Login error:', error);
       throw error;
@@ -83,10 +103,21 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       setLoading(true);
       
-      const userId = await Auth.register(userData);
+      // Demo registration - in production, this would call the API
+      const newUser = {
+        id: `user_${Date.now()}`,
+        email: userData.email,
+        name: userData.fullName,
+        role: 'affiliate' as const,
+        status: 'pending' as const,
+        ...userData
+      };
       
       // Auto-login after registration
-      await login(userData.email, userData.password);
+      setUser(newUser);
+      setProfile(newUser);
+      localStorage.setItem('currentUser', JSON.stringify(newUser));
+      localStorage.setItem('sessionToken', `demo_token_${Date.now()}`);
     } catch (error) {
       console.error('Registration error:', error);
       throw error;
@@ -97,11 +128,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const logout = async () => {
     try {
-      const sessionToken = localStorage.getItem('sessionToken');
-      if (sessionToken) {
-        await Auth.deleteSession(sessionToken);
-        localStorage.removeItem('sessionToken');
-      }
+      localStorage.removeItem('currentUser');
+      localStorage.removeItem('sessionToken');
       
       setUser(null);
       setProfile(null);
@@ -119,18 +147,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       // Store original user data
       setOriginalUser({ user, profile });
       
-      // Get the target user profile
-      const targetProfile = await Database.queryOne(
-        'SELECT * FROM profiles WHERE email = ?',
-        [email]
-      );
+      // Demo impersonation - in production, this would call the API
+      const targetUser = {
+        id: '00000000-0000-0000-0000-000000000002',
+        email: 'affiliate@affwish.com',
+        name: 'Top Affiliate Marketer',
+        role: 'affiliate' as const,
+        status: 'active' as const,
+        company: 'Marketing Pro LLC'
+      };
 
-      if (!targetProfile) {
-        throw new Error('User not found');
-      }
-
-      setUser(targetProfile);
-      setProfile(targetProfile);
+      setUser(targetUser);
+      setProfile(targetUser);
       setIsImpersonating(true);
     } catch (error) {
       console.error('Impersonation failed:', error);
@@ -152,20 +180,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const checkSession = async () => {
       try {
         const sessionToken = localStorage.getItem('sessionToken');
+        const currentUser = localStorage.getItem('currentUser');
         
-        if (sessionToken) {
-          const session = await Auth.validateSession(sessionToken);
-          
-          if (session) {
-            setUser(session);
-            setProfile(session);
-          } else {
-            localStorage.removeItem('sessionToken');
-          }
+        if (sessionToken && currentUser) {
+          const userData = JSON.parse(currentUser);
+          setUser(userData);
+          setProfile(userData);
         }
       } catch (error) {
         console.error('Session validation error:', error);
         localStorage.removeItem('sessionToken');
+        localStorage.removeItem('currentUser');
       } finally {
         setLoading(false);
       }

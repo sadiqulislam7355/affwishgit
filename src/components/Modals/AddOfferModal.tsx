@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { X, Globe, DollarSign, Target, Calendar, CheckCircle, Settings } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
+import { apiService } from '../../services/api';
 import { trackingSoftwareTemplates, cpaNetworkTemplates } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import toast from 'react-hot-toast';
@@ -66,10 +66,10 @@ const AddOfferModal: React.FC<AddOfferModalProps> = ({ isOpen, onClose, onSucces
         advertiser: formData.advertiser,
         advertiser_id: `adv_${Date.now()}`,
         payout: parseFloat(formData.payout),
-        payout_type: formData.payoutType as any,
+        payout_type: formData.payoutType,
         rev_share_percentage: formData.payoutType === 'RevShare' ? parseFloat(formData.revSharePercentage) : null,
         category: formData.category,
-        status: 'active' as any,
+        status: 'active',
         countries: formData.countries ? formData.countries.split(',').map(c => c.trim()) : [],
         devices: formData.devices ? formData.devices.split(',').map(d => d.trim()) : [],
         traffic_sources: formData.trafficSources ? formData.trafficSources.split(',').map(t => t.trim()) : [],
@@ -94,11 +94,11 @@ const AddOfferModal: React.FC<AddOfferModalProps> = ({ isOpen, onClose, onSucces
         created_by: user?.id
       };
 
-      const { error } = await supabase
-        .from('offers')
-        .insert(offerData);
+      const response = await apiService.createOffer(offerData);
 
-      if (error) throw error;
+      if (!response.success) {
+        throw new Error(response.error);
+      }
 
       setSuccess(true);
       toast.success('Offer created successfully!');
@@ -474,173 +474,6 @@ const AddOfferModal: React.FC<AddOfferModalProps> = ({ isOpen, onClose, onSucces
                   placeholder="Social, Email, Search, Display"
                 />
               </div>
-            </div>
-          </div>
-
-          {/* Caps */}
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Conversion Caps</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Daily Cap
-                </label>
-                <input
-                  type="number"
-                  name="dailyCap"
-                  value={formData.dailyCap}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="100"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Weekly Cap
-                </label>
-                <input
-                  type="number"
-                  name="weeklyCap"
-                  value={formData.weeklyCap}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Monthly Cap
-                </label>
-                <input
-                  type="number"
-                  name="monthlyCap"
-                  value={formData.monthlyCap}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="2000"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Admin Settings */}
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center space-x-2">
-              <Settings className="w-5 h-5" />
-              <span>Admin Settings</span>
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-4">
-                <div className="flex items-center space-x-3">
-                  <input
-                    type="checkbox"
-                    name="requireApproval"
-                    checked={formData.requireApproval}
-                    onChange={handleChange}
-                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                  />
-                  <label className="text-sm text-gray-700">
-                    Require manual approval for conversions
-                  </label>
-                </div>
-
-                <div className="flex items-center space-x-3">
-                  <input
-                    type="checkbox"
-                    name="autoApprove"
-                    checked={formData.autoApprove}
-                    onChange={handleChange}
-                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                  />
-                  <label className="text-sm text-gray-700">
-                    Auto-approve low-risk conversions
-                  </label>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Scrub Rate (%)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    min="0"
-                    max="100"
-                    name="scrubRate"
-                    value={formData.scrubRate}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="5.0"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Throttle Rate (%)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    min="0"
-                    max="100"
-                    name="throttleRate"
-                    value={formData.throttleRate}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="10.0"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Hold Period (days)
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    name="holdPeriod"
-                    value={formData.holdPeriod}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="7"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Additional Fields */}
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Conversion Flow
-              </label>
-              <textarea
-                name="conversionFlow"
-                value={formData.conversionFlow}
-                onChange={handleChange}
-                rows={2}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Registration + Email Verification + First Purchase"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Restrictions
-              </label>
-              <textarea
-                name="restrictions"
-                value={formData.restrictions}
-                onChange={handleChange}
-                rows={2}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="No adult traffic, no incentivized traffic, 18+ only"
-              />
             </div>
           </div>
 

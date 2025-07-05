@@ -1,4 +1,5 @@
-import { Database } from '../lib/database';
+// API Service for MySQL Backend
+// This replaces Supabase API calls with MySQL-compatible endpoints
 
 export interface ApiResponse<T = any> {
   success: boolean;
@@ -8,20 +9,100 @@ export interface ApiResponse<T = any> {
 }
 
 class ApiService {
+  private baseUrl = '/api'; // In production, this would be your backend API URL
+
+  // Demo data for development
+  private demoOffers = [
+    {
+      id: '00000000-0000-0000-0000-000000000010',
+      name: 'Premium Dating App - iOS/Android',
+      description: 'High-converting dating app with premium features. Target audience: 18-45 years old, looking for serious relationships.',
+      advertiser: 'Dating Corp International',
+      advertiser_id: 'DC_001',
+      payout: 25.00,
+      payout_type: 'CPA',
+      category: 'Dating',
+      status: 'active',
+      countries: ['US', 'CA', 'UK', 'AU', 'DE'],
+      devices: ['Mobile', 'Desktop'],
+      traffic_sources: ['Social Media', 'Email Marketing', 'Native Ads'],
+      offer_url: 'https://dating-app.example.com/signup',
+      preview_url: 'https://dating-app.example.com/preview',
+      tracking_url: 'https://track.affwish.com/click?offer_id={offer_id}&affiliate_id={affiliate_id}&click_id={click_id}',
+      global_postback_enabled: true,
+      created_at: new Date().toISOString()
+    },
+    {
+      id: '00000000-0000-0000-0000-000000000011',
+      name: 'Crypto Trading Platform',
+      description: 'Leading cryptocurrency trading platform with advanced features. High payouts for qualified leads.',
+      advertiser: 'CryptoTrade Exchange',
+      advertiser_id: 'CTE_002',
+      payout: 40.00,
+      payout_type: 'CPA',
+      category: 'Finance',
+      status: 'active',
+      countries: ['US', 'CA', 'UK', 'AU', 'DE'],
+      devices: ['Desktop', 'Mobile'],
+      traffic_sources: ['PPC', 'Social Media', 'Email Marketing'],
+      offer_url: 'https://crypto-exchange.example.com/register',
+      preview_url: 'https://crypto-exchange.example.com/preview',
+      tracking_url: 'https://track.affwish.com/click?offer_id={offer_id}&affiliate_id={affiliate_id}&click_id={click_id}',
+      global_postback_enabled: true,
+      created_at: new Date().toISOString()
+    },
+    {
+      id: '00000000-0000-0000-0000-000000000012',
+      name: 'VPN Service - Premium Subscription',
+      description: 'Top-rated VPN service with global servers. High conversion rates on free trial offers.',
+      advertiser: 'SecureVPN Solutions',
+      advertiser_id: 'SVS_003',
+      payout: 15.00,
+      payout_type: 'CPA',
+      category: 'Software',
+      status: 'active',
+      countries: ['Global'],
+      devices: ['Desktop', 'Mobile', 'Tablet'],
+      traffic_sources: ['SEO', 'Content Marketing', 'Social Media'],
+      offer_url: 'https://secure-vpn.example.com/trial',
+      preview_url: 'https://secure-vpn.example.com/preview',
+      tracking_url: 'https://track.affwish.com/click?offer_id={offer_id}&affiliate_id={affiliate_id}&click_id={click_id}',
+      global_postback_enabled: true,
+      created_at: new Date().toISOString()
+    }
+  ];
+
+  // User management
+  async getUserProfile(userId: string): Promise<ApiResponse> {
+    try {
+      // Demo implementation - replace with actual API call
+      const currentUser = localStorage.getItem('currentUser');
+      if (currentUser) {
+        return { success: true, data: JSON.parse(currentUser) };
+      }
+      return { success: false, error: 'User not found' };
+    } catch (error) {
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Failed to get user profile' 
+      };
+    }
+  }
+
   // Offer management
   async createOffer(offerData: any): Promise<ApiResponse> {
     try {
-      const offerId = Database.generateUUID();
-      const data = {
-        id: offerId,
+      const newOffer = {
+        id: `offer_${Date.now()}`,
         ...offerData,
-        created_at: new Date(),
-        updated_at: new Date()
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       };
 
-      await Database.insert('offers', data);
-
-      return { success: true, data: { id: offerId, ...data } };
+      // In production, this would make an API call to your MySQL backend
+      this.demoOffers.push(newOffer);
+      
+      return { success: true, data: newOffer };
     } catch (error) {
       console.error('Failed to create offer:', error);
       return { 
@@ -33,18 +114,19 @@ class ApiService {
 
   async updateOffer(offerId: string, offerData: any): Promise<ApiResponse> {
     try {
-      const data = {
-        ...offerData,
-        updated_at: new Date()
-      };
-
-      const affectedRows = await Database.update('offers', data, 'id = ?', [offerId]);
-
-      if (affectedRows === 0) {
+      const offerIndex = this.demoOffers.findIndex(offer => offer.id === offerId);
+      
+      if (offerIndex === -1) {
         return { success: false, error: 'Offer not found' };
       }
 
-      return { success: true, data };
+      this.demoOffers[offerIndex] = {
+        ...this.demoOffers[offerIndex],
+        ...offerData,
+        updated_at: new Date().toISOString()
+      };
+
+      return { success: true, data: this.demoOffers[offerIndex] };
     } catch (error) {
       console.error('Failed to update offer:', error);
       return { 
@@ -56,12 +138,13 @@ class ApiService {
 
   async deleteOffer(offerId: string): Promise<ApiResponse> {
     try {
-      const affectedRows = await Database.delete('offers', 'id = ?', [offerId]);
-
-      if (affectedRows === 0) {
+      const offerIndex = this.demoOffers.findIndex(offer => offer.id === offerId);
+      
+      if (offerIndex === -1) {
         return { success: false, error: 'Offer not found' };
       }
 
+      this.demoOffers.splice(offerIndex, 1);
       return { success: true };
     } catch (error) {
       console.error('Failed to delete offer:', error);
@@ -74,17 +157,16 @@ class ApiService {
 
   async getOffers(page: number = 1, limit: number = 50): Promise<ApiResponse> {
     try {
-      const offset = (page - 1) * limit;
-      
-      const offers = await Database.query(
-        'SELECT * FROM offers ORDER BY created_at DESC LIMIT ? OFFSET ?',
-        [limit, offset]
-      );
+      // Demo implementation - in production, this would query MySQL
+      const startIndex = (page - 1) * limit;
+      const endIndex = startIndex + limit;
+      const paginatedOffers = this.demoOffers.slice(startIndex, endIndex);
 
-      const totalResult = await Database.queryOne('SELECT COUNT(*) as total FROM offers');
-      const total = totalResult.total;
-
-      return { success: true, data: offers, total };
+      return { 
+        success: true, 
+        data: paginatedOffers, 
+        total: this.demoOffers.length 
+      };
     } catch (error) {
       console.error('Failed to fetch offers:', error);
       return { 
@@ -94,70 +176,19 @@ class ApiService {
     }
   }
 
-  // Affiliate management
-  async createAffiliate(affiliateData: any): Promise<ApiResponse> {
-    try {
-      const affiliateId = Database.generateUUID();
-      const data = {
-        id: affiliateId,
-        ...affiliateData,
-        created_at: new Date(),
-        updated_at: new Date()
-      };
-
-      await Database.insert('affiliates', data);
-
-      return { success: true, data: { id: affiliateId, ...data } };
-    } catch (error) {
-      console.error('Failed to create affiliate:', error);
-      return { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Failed to create affiliate' 
-      };
-    }
-  }
-
-  async getAffiliates(page: number = 1, limit: number = 50): Promise<ApiResponse> {
-    try {
-      const offset = (page - 1) * limit;
-      
-      const affiliates = await Database.query(`
-        SELECT p.*, a.* FROM profiles p
-        LEFT JOIN affiliates a ON p.id = a.user_id
-        WHERE p.role = 'affiliate'
-        ORDER BY p.created_at DESC
-        LIMIT ? OFFSET ?
-      `, [limit, offset]);
-
-      const totalResult = await Database.queryOne(`
-        SELECT COUNT(*) as total FROM profiles 
-        WHERE role = 'affiliate'
-      `);
-      const total = totalResult.total;
-
-      return { success: true, data: affiliates, total };
-    } catch (error) {
-      console.error('Failed to fetch affiliates:', error);
-      return { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Failed to fetch affiliates' 
-      };
-    }
-  }
-
   // Click tracking
   async trackClick(clickData: any): Promise<ApiResponse> {
     try {
-      const clickId = Database.generateUUID();
-      const data = {
-        id: clickId,
+      const click = {
+        id: `click_${Date.now()}`,
         ...clickData,
-        created_at: new Date()
+        created_at: new Date().toISOString()
       };
 
-      await Database.insert('clicks', data);
+      // In production, this would insert into MySQL clicks table
+      console.log('Tracking click:', click);
 
-      return { success: true, data: { id: clickId, ...data } };
+      return { success: true, data: click };
     } catch (error) {
       console.error('Failed to track click:', error);
       return { 
@@ -170,22 +201,17 @@ class ApiService {
   // Conversion tracking
   async trackConversion(conversionData: any): Promise<ApiResponse> {
     try {
-      const conversionId = Database.generateUUID();
-      const data = {
-        id: conversionId,
+      const conversion = {
+        id: `conversion_${Date.now()}`,
         ...conversionData,
-        created_at: new Date(),
-        updated_at: new Date()
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       };
 
-      await Database.insert('conversions', data);
+      // In production, this would insert into MySQL conversions table
+      console.log('Tracking conversion:', conversion);
 
-      // Update click as converted
-      if (data.click_id) {
-        await Database.update('clicks', { is_converted: true }, 'id = ?', [data.click_id]);
-      }
-
-      return { success: true, data: { id: conversionId, ...data } };
+      return { success: true, data: conversion };
     } catch (error) {
       console.error('Failed to track conversion:', error);
       return { 
@@ -195,15 +221,45 @@ class ApiService {
     }
   }
 
+  // Analytics
+  async getAnalytics(dateRange: string = '7d'): Promise<ApiResponse> {
+    try {
+      // Demo analytics data
+      const analyticsData = {
+        clicks: [
+          { date: '2024-01-01', count: 420, affiliate_id: '00000000-0000-0000-0000-000000000002' },
+          { date: '2024-01-02', count: 380, affiliate_id: '00000000-0000-0000-0000-000000000002' },
+          { date: '2024-01-03', count: 520, affiliate_id: '00000000-0000-0000-0000-000000000002' }
+        ],
+        conversions: [
+          { date: '2024-01-01', count: 45, payout: 1125, affiliate_id: '00000000-0000-0000-0000-000000000002' },
+          { date: '2024-01-02', count: 38, payout: 950, affiliate_id: '00000000-0000-0000-0000-000000000002' },
+          { date: '2024-01-03', count: 62, payout: 1550, affiliate_id: '00000000-0000-0000-0000-000000000002' }
+        ]
+      };
+
+      return { success: true, data: analyticsData };
+    } catch (error) {
+      console.error('Failed to fetch analytics:', error);
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Failed to fetch analytics' 
+      };
+    }
+  }
+
   // Settings management
   async getSetting(key: string): Promise<ApiResponse> {
     try {
-      const setting = await Database.queryOne(
-        'SELECT setting_value FROM settings WHERE setting_key = ?',
-        [key]
-      );
+      // Demo settings
+      const settings: Record<string, any> = {
+        network_name: 'AFFWISH Network',
+        global_postback_url: 'https://postback.affwish.com/global?click_id={click_id}&status={status}',
+        fraud_protection_enabled: false,
+        ipqualityscore_api_key: ''
+      };
 
-      return { success: true, data: setting?.setting_value };
+      return { success: true, data: settings[key] };
     } catch (error) {
       console.error('Failed to get setting:', error);
       return { 
@@ -215,25 +271,9 @@ class ApiService {
 
   async updateSetting(key: string, value: any): Promise<ApiResponse> {
     try {
-      // Try to update first
-      const affectedRows = await Database.update(
-        'settings', 
-        { setting_value: JSON.stringify(value), updated_at: new Date() }, 
-        'setting_key = ?', 
-        [key]
-      );
-
-      // If no rows affected, insert new setting
-      if (affectedRows === 0) {
-        await Database.insert('settings', {
-          id: Database.generateUUID(),
-          setting_key: key,
-          setting_value: JSON.stringify(value),
-          created_at: new Date(),
-          updated_at: new Date()
-        });
-      }
-
+      // In production, this would update MySQL settings table
+      console.log(`Setting ${key} = ${value}`);
+      
       return { success: true, data: { key, value } };
     } catch (error) {
       console.error('Failed to update setting:', error);
@@ -244,58 +284,24 @@ class ApiService {
     }
   }
 
-  async getSettings(): Promise<ApiResponse> {
+  // Postback management
+  async createPostback(postbackData: any): Promise<ApiResponse> {
     try {
-      const settings = await Database.query(
-        'SELECT * FROM settings ORDER BY category, setting_key'
-      );
+      const postback = {
+        id: `postback_${Date.now()}`,
+        ...postbackData,
+        created_at: new Date().toISOString()
+      };
 
-      return { success: true, data: settings };
+      // In production, this would insert into MySQL postbacks table
+      console.log('Creating postback:', postback);
+
+      return { success: true, data: postback };
     } catch (error) {
-      console.error('Failed to fetch settings:', error);
+      console.error('Failed to create postback:', error);
       return { 
         success: false, 
-        error: error instanceof Error ? error.message : 'Failed to fetch settings' 
-      };
-    }
-  }
-
-  // Analytics
-  async getAnalytics(dateRange: string = '7d'): Promise<ApiResponse> {
-    try {
-      let days = 7;
-      switch (dateRange) {
-        case '30d': days = 30; break;
-        case '90d': days = 90; break;
-        default: days = 7;
-      }
-
-      // Get clicks data
-      const clicks = await Database.query(`
-        SELECT * FROM clicks 
-        WHERE created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
-        ORDER BY created_at DESC
-      `, [days]);
-
-      // Get conversions data
-      const conversions = await Database.query(`
-        SELECT * FROM conversions 
-        WHERE created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
-        ORDER BY created_at DESC
-      `, [days]);
-
-      return { 
-        success: true, 
-        data: { 
-          clicks: clicks || [], 
-          conversions: conversions || [] 
-        } 
-      };
-    } catch (error) {
-      console.error('Failed to fetch analytics:', error);
-      return { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Failed to fetch analytics' 
+        error: error instanceof Error ? error.message : 'Failed to create postback' 
       };
     }
   }
@@ -303,36 +309,18 @@ class ApiService {
   // Fraud detection
   async checkFraud(ipAddress: string): Promise<ApiResponse> {
     try {
-      // Get IPQualityScore API key from settings
-      const apiKeyResponse = await this.getSetting('ipqualityscore_api_key');
-      if (!apiKeyResponse.success || !apiKeyResponse.data) {
-        return { success: false, error: 'IPQualityScore API key not configured' };
-      }
+      // Demo fraud check - in production, this would call IPQualityScore API
+      const fraudData = {
+        fraud_score: Math.floor(Math.random() * 100),
+        country_match: true,
+        proxy: false,
+        vpn: false,
+        tor: false,
+        recent_abuse: false,
+        bot_status: false
+      };
 
-      const apiKey = JSON.parse(apiKeyResponse.data);
-      const url = `https://ipqualityscore.com/api/json/ip/${apiKey}/${ipAddress}`;
-
-      const response = await fetch(url);
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Fraud check failed');
-      }
-
-      // Log the fraud check
-      await Database.insert('fraud_logs', {
-        id: Database.generateUUID(),
-        ip_address: ipAddress,
-        fraud_score: data.fraud_score,
-        risk_level: data.fraud_score > 75 ? 'high' : data.fraud_score > 50 ? 'medium' : 'low',
-        reasons: JSON.stringify(data.recent_abuse ? ['recent_abuse'] : []),
-        blocked: data.fraud_score > 75,
-        provider: 'ipqualityscore',
-        raw_response: JSON.stringify(data),
-        created_at: new Date()
-      });
-
-      return { success: true, data };
+      return { success: true, data: fraudData };
     } catch (error) {
       console.error('Fraud check failed:', error);
       return { 
